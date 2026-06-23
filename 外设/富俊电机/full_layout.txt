@@ -1,0 +1,2905 @@
+485 
+
+
+                           485 
+
+                485 
+
+RS485 
+
+ RS485  Modbus-RTU 
+
+ 64 
+
+
+         
+
+        bps             m
+
+        9600       1000
+
+        19200      1000
+
+        38400      1000
+
+        57600      800
+
+        115200     500
+
+        256000     250
+
+
+
+Modbus-RTU/RS485
+     Modbus-RTU/RS485 
+
+
+      115200
+     8
+     1
+     
+
+
+     0 
+     1~64  RTU RTU  64 
+
+                1            :V126
+
+                           2025  03  14
+                                                                               485 
+                                              
+                                                                        
+                                                                       WORD
+                                                           WORD/DWORD/QWORD
+                                  0x04                                 WORD
+                                  0x03                     WORD/DWORD/QWORD
+                                  0x06
+                                  0x10
+
+     
+
+CRC  CRC 
+
+                                               
+
+                                                   
+
+                                                                          CRC
+     0x04       1                        0x04                            2 
+                                                   2           2 
+                1                        0x04                             CRC
+                                                                         2 
+                1                        0x03
+                                                   1           2          CRC
+                1                        0x03                            2 
+                                                               
+                1                        0x06                             CRC
+/                                                  2           2         2 
+        0x03    1                        0x06
+                                                                          CRC
+                1                        0x10                            2 
+                                        
+                1                        0x10      1           2n         CRC
+                                                                         2 
+                                                               
+                                                                          CRC
+                                                   2           2         2 
+     0x06     
+                                                                          CRC
+                                                                         2 
+
+                                                   2           2 
+
+                                                                   
+
+                                               2       2   1        2n 
+     0x10     
+                                                               
+
+                                                   2           2 
+
+1n  WORD  2  2 
+
+2CRC 
+
+                                               2                           :V126
+
+                                                                    2025  03  14
+                                                                        485 
+
+                                                                                  
+         
+                STRING                                              RO              -
+       0x0000
+       0x0001   STRING                                              RO              -
+       0x0002
+       0x0003    INT32                                      -       RO          pulses
+       0x0004
+       0x0005   UINT32                                      -       RO              -
+       0x0006
+       0x0007   UINT16                                      0      RW              ms
+       0x0008   UINT16                                     12      RW               -
+       0x0009   UINT16                                     250     RW               -
+       0x000A   UINT16                                     200     RW      Full step(1.8°)
+       0x000B   UINT16                                     100     RW      Full step(1.8°)
+       0x000C   UINT16                                             RW            0.01A
+       0x000D   UINT16                                             RW               %
+       0x000E   UINT16                                    1000     RW             CPR
+       0x000F   UINT16                                     20      RW      Full step(1.8°)
+       0x0010   UINT16                                      -      RW           pulses
+       0x0011   UINT16                                      -      RW               -
+       0x0012   UINT16                                    425K     RW              HZ
+       0x0013   UINT16                                      0       RO              -
+       0x0015   UINT16                                      -      RW             rpm
+       0x0016   UINT16                    ()               200     RW             CPR
+       0x0017   UINT16                                      -      RW               -
+       0x0018    INT16                                      -       RO            rpm
+                 INT16                                      -       RO            rpm
+       0x0019   UINT16                                      -       RO            mA
+                UINT16      ( 112)                          2      RW              ms
+       0x001A   UINT16  ( 118 )                             2      RW              ms
+       0x001B   UINT16                                      2      RW              ms
+       0x001C   UINT16                 0                    2      RW              ms
+       0x001D   UINT16                 1                    2      RW              ms
+       0x001E   UINT16                 2                    2      RW              ms
+       0x001F   UINT16                 3                    2      RW              ms
+       0x0020   UINT16                 4                    2      RW              ms
+       0x0021                          5 
+       0x0022   UINT32                 6                  4000     RW        pulses/rev
+       0x0024                          7 
+       0x0025   UINT16                                             RW             mH
+       0x0026   UINT16            ()                               RW               
+       0x0027   UINT16                                             RW               -
+       0x0028   UINT16                                             RW               -
+       0x0029   UINT16                                     100     RW             rpm
+       0x002C   UINT16                                      5      RW             rpm
+       0x002D   UINT16                                     10      RW             rpm
+       0x002E   UINT16                                     15      RW             rpm
+       0x002F   UINT16                                     30      RW             rpm
+       0x0030   UINT16                                     60      RW             rpm
+       0x0031   UINT16                                     90      RW             rpm
+       0x0032   UINT16                                             RW             rpm
+       0x0033   UINT16                                     120     RW            0.01V
+       0x0044   UINT16                                     150     RW            0.01A
+       0x0045   UINT16                                             RW           pulses
+       0x0046   UINT16                                      -      RW           pulses
+       0x0047   UINT16                                      -      RW            0.01V
+       0x0048   UINT16                                      -      RW               -
+       0x0066                                               -
+                                                            -                  :V126
+                                                            1           2025  03  14
+
+                                                   3
+                                                               485 
+0x0067   UINT16                                   0       RW
+0x006B   UINT16                                   0       RW             
+0x006C   UINT16                                   0       WO               -
+0x006D   UINT16          /                        0       RW               -
+0x006E                                                                     -
+0x006F    INT32                           -2147483648     RW               -
+0x0070
+0x0071    INT32                           2147483647      RW           pulses
+0x0075
+0x0076   UINT16                                   -       RW           pulses
+0x0077
+0x0078    INT32                                   -        RO              -
+0x0079
+0x007A    INT32                                   -       RW           counts
+0x007B
+0x0096    INT32                                   -       RW           counts
+0x0097
+0x0098   UINT16                                  50       RW           pulses
+0x0099   UINT16                                  50       RW
+0x009A   UINT16                                 120       RW             rpm
+0x009B   UINT16                                 120       RW             rpm
+0x009C   UINT16                                 300       RW              ms
+0x009D   UINT16                                   -       RW              ms
+0x009E   UINT16                                   -       RW             rpm
+0x009F   UINT16                                   -       RW
+0x00A0   UINT16                                   -       RW               -
+0x00A1   UINT16                                   3       RW               -
+0x00A2   UINT16                                   -       WO               -
+0x00A3   UINT16                                   -       WO               -
+0x00A4   UINT16                                   -        RO              -
+0x00A5   UINT16                                   -        RO              -
+0x00A6   UINT16                                   -       WO               -
+0x00A7   UINT16                                 257       RW               -
+0x00A8   UINT16                                 514       RW               -
+0x00A9   UINT16                                 514       RW               -
+0x00AA                                                                     -
+0x00AB    INT32      (X11)                        -       RW               -
+0x00AC                                                                     -
+0x00AD   UINT16                                   -       RW
+0x00AE   UINT16                                   -       RW           pulses
+0x00AF   UINT16                                   -       RW
+0x00B0   UINT16                                   -       RW               -
+0x00B1   UINT16                                   -       RW               -
+0x00B2   UINT16                                   -       RW               -
+0x00B3   UINT16                                   -       RW               -
+0x00B4   UINT16                                   -       RW               -
+0x00B5   UINT16             1                     -       RW               -
+0x00B8   UINT16             2                     0       RW               -
+0x00B6   UINT16             3                     0       RW               -
+0x00B7   UINT16             4                     0       RW               -
+0x00BA   UINT16                                   0       RW             rpm
+0x00BB                                                                   rpm
+0x00BE   UINT32                                   0       RW             rpm
+0x00BF                    IO                                             rpm
+0x0029   UINT32                                   -       RW
+0x00C0                                                                     -
+          INT16                                   0       RW
+         UINT16                                 100       RW               -
+         UINT16                                 100       RW
+         UINT16                                3200       RW        1/4000 DEG
+                                       4                                   -
+                                                                           -
+                                                                           -
+
+                                                                      :V126
+                                                               2025  03  14
+                                                       485 
+
+                                                         
+0x00C1   UINT16                          25       RW        -
+0x00C2    INT32                                   RW        -
+0x00C3            (X17)            1073741823
+0x00C4    INT32                                   RW        -
+0x00C5            (X18)            1073741823
+0x00C6    INT32                                   RW        -
+0x00C7   UINT16   (X19)            1073741823     WO        -
+0x00C8   UINT16                           -       WO        -
+0x00C9   UINT16                           -       WO        -
+0x00CA   UINT16                           -       WO        -
+0x00CB    INT32                           -       WO      ms
+0x00CC                                    -
+0x00CD    INT32                                   WO    pulses
+0x00CE                                    -
+0x00CF    INT32                                   WO    pulses
+0x00D0                                    -
+0x00D1    INT32                                    RO   pulses
+0x00D2   UINT16                           0       WO        -
+0x00D3   UINT16                           -        RO
+0x00D4    INT32                           -        RO    rpm-
+0x00D5               ()                   0            0.01rpm
+0x00D6    INT32                                   RW
+0x00D7   UINT16                        30000      WO   0.01rpm
+0x00D8   UINT16                           -       WO        -
+0x00D9   UINT16    //                     -       WO        -
+0x00DB    INT32                           -       WO        -
+0x00DC                                    -
+0x00DD    INT32                                   WO    pulses
+0x00DE                                    -
+0x00DF                                                  pulses
+0x00E8
+0x00E9                  
+                        
+                   
+                      
+                 ()
+                   
+                 ()
+
+                                5                        :V126
+
+                                                       2025  03  14
+                                                                                  485 
+
+
+
+1. 
+
+0x0000~0x0001
+
+
+
+ReadDWORD
+
+BIT                                                                                        
+                                                                              
+0~31                     String   0~4294967295
+
+ ASCII 
+
+
+
+                                                                                  CRC 
+
+            01    03       00            00               00             02  C4                  0B
+                                                                  
+                                                                                             CRC 
+
+           01      03         04  37                      31      00         30              A5      9C
+
+ 8  ASCII 0x00  170
+
+2. 
+    0x0002~0x0003
+    
+    ReadDWORD
+
+BIT                                                                                        
+                                                                              
+0~31                     String   0~4294967295
+
+ ASCII 
+
+
+
+                                                                                  CRC 
+
+            01    03       00            02               00             02  65                  CB
+                                                                  
+                                                                                             CRC 
+
+           01      03         04  30                      31      00         35              64      EB
+
+ 8  ASCII 0x00  105
+
+3. 
+    0x0004~0x0005
+    
+    ReadDWORD
+
+BIT                                                                                        
+                                                                              
+0~31                   INT32      -2147483648~2147483647
+
+
+
+                                                                                  CRC 
+                                                                       02
+            01    03       00            04               00                 85                  CA
+                                                                
+                                                                       00                    CRC 
+         
+
+       01          03         04  00                      00                 00              FA      33
+
+                                                6                                              :V126
+
+                                                                                  2025  03  14
+                                                                                                   485 
+
+4. 
+
+0x0006~0x0007
+
+
+
+ReadWORD
+
+BIT                                                                                                        
+                                         BIT           0       0                                      0
+22~31            X22~X31                 BIT           0       0                                 1 0 
+                                         BIT                   0                     0 1
+21                                       BIT         0~1       0                      1
+                                         BIT         0~1       0                      1
+20               X20                     BIT         0~1       0                      1
+                                         BIT         0~1       0                   1  0 
+19               X19                     BIT         0~1       0                             1  0 
+                                         BIT         0~1       0                               1
+18               X18                     BIT         0~1       0                               1
+                                         BIT         0~1       0                            1 0
+17               X17                     BIT         0~1       0                      1
+                                         BIT         0~1       0              0x0010  1
+16               X16                     BIT         0~1       0  00 01 10 
+                                         BIT         0~1       0                                11 
+15               X15                     BIT         0~1       0            X7 1 0 
+                                         BIT         0~1       0            X6 1 0 
+14               X14                     BIT         0~1       0            X5 1 0 
+                                         BIT         0~1       0            X4 1 0 
+13               X13                     BIT         0~1       0            X3 1 0 
+                                         BIT         0~1       0            X2 1 0 
+12               X12                     BIT         0~1       0            X1 1 0 
+                                         BIT         0~1       0            X0 1 0 
+11               X11                                 0~1
+
+10               X10
+
+9
+                          X8,X9
+
+8
+
+7               X7 
+
+6               X6 
+
+5               X5 
+
+4               X4 
+
+3               X3 
+
+2               X2 
+
+1               X1 
+
+0               X0 
+
+: X1 
+
+                                                                                                   CRC 
+                                                   06                00          02
+            01    03               00                                                        24              0A
+                                                                          
+                                                   03                02          00                      CRC 
+         
+
+       01       03               04                                                          00          5B      B7
+
+5. 
+      0x0008
+      , 0 
+      ReadWORD/ WriteWORD,
+
+BIT                                                                                      
+
+0~15                             UINT16     0~65535                      :, 0:10ms
+
+: 
+
+                                                                                                       CRC 
+                                        00                  08            00
+            01    03                                                                     01        05            C8
+                                                                   
+                                        02                  00            00             CRC 
+
+           01   03                                                                   B8        44
+
+ 100ms. 10 0x000A
+
+                                                                                                       CRC 
+                  06                    00                  08           00                 0A
+ / 01                                                                                              88            OF
+
+                                                          7                                                :V126
+
+                                                                                                   2025  03  14
+                                                                                     485 
+
+6. 
+      0x0009
+      
+      ReadWORD/ WriteWORD,
+
+BIT                                                                        
+
+15~12                        Bit        0        0                         
+
+11~10                        Bit        0~3      0         0 11 0.52 23 1.5
+
+9~8                          Bit        0~3      0         013
+
+7~0                          Bit        1~15     12        :  115200
+
+
+
+1=3002=6003=12004=24005=48006=96007=144008=192009=3840010=5600011=57600 12=115200
+
+13=23040014=46080015=921600
+
+ 0x000C 115200
+
+                                                                                         CRC 
+                                                       09          00
+         01     03             00                                          01        54        08
+                                                            
+                                                       00          0C      CRC 
+
+        01    03                  02                                   B8        41
+
+ 9600 0x0106
+
+                                                                                         CRC 
+                06                  00                 09         01          06
+ / 01                                                                                D8        5A
+
+      
+ 115200
+
+7. 
+      0x000A
+      
+      ReadWORD/ WriteWORD,
+
+BIT                                                                        
+
+0~15                UINT16              1~2500             : ---250---25
+
+ 
+
+ms=1000÷
+
+ 0x00FA 4ms
+
+                                                                                         CRC 
+                                                       0A          00
+         01     03             00                                          01        A4        08
+                                                            
+                                                       00          FA      CRC 
+
+        01    03                  02                                   38        07
+
+ 0x03E8 1ms
+
+                                                                                         CRC 
+                06                  00                 0A         03          E8
+ / 01                                                                                A9        76
+
+8. 
+      0x000B
+      ()
+      ReadWORD/ WriteWORD,
+
+BIT                                                                        
+
+0~15                         UINT16     0~65535            0  1.8°
+
+ 200  360°
+
+                                                                                         CRC 
+                                                       0B          00
+         01     03             00                                          01        F5        C8
+                                                            
+                                                       00          C8      CRC 
+
+        01    03                  02                                   B9      D2
+
+ 100 180°
+
+                                                                                         CRC 
+                06                  00                 0B         00          64
+ / 01                                                                                F9        E3
+
+                                                 8                                         :V126
+
+                                                                                     2025  03  14
+                                                                                 485 
+
+9. 
+      0x000C
+      ()
+      ReadWORD/ WriteWORD,
+
+BIT                                                                    
+
+0~15                     UINT16   0~65535              0  1.8°
+
+ 100  180°
+
+                                                                                          CRC 
+                                              0C               00
+            01     03      00                                          01             44        09
+                                                        
+                                              00               C8      CRC 
+
+           01    03      02                                        B9      D2
+
+ 50 90°
+
+                                                                                          CRC 
+                   06         00              0C              00          32
+ / 01                                                                                 C8        1C
+
+10. 
+      0x000D
+      
+      ReadWORD/ WriteWORD,
+
+BIT                                                                                 
+                                                                    0.01A
+0~15                     UINT16   10~650       
+
+ 100 1A
+
+                                                                                          CRC 
+                                              0D               00
+            01     03      00                                          01             15        C9
+                                                        
+                                              00               64      CRC 
+
+           01    03      02                                        B9        AF
+
+ 500,  5A
+
+                                                                                          CRC 
+                              00              0D              01          F4
+ / 01            06                                                                   18        1E
+
+11. 
+      0x000E
+      
+      ReadWORD/ WriteWORD,
+
+      BIT                                                                      
+                                                                          ,
+ 15~8                             BIT      1~100    0               
+ 7~0                                                               
+                                  BIT      1~100                    
+
+ 15~8                             BIT      1~100 
+ 7~0              
+                                  BIT      1~100 
+
+ 0x1919 25% 25%
+
+                                                                                          CRC 
+                                                               00
+            01     03      00                 0E                       01             E5        C9
+                                                        
+                                                               19      CRC 
+
+           01    03      02                19                      72        1E
+
+ 25% 50% 0x1932
+
+                                                                                          CRC 
+                   06         00              0E              19          32
+ / 01                                                                                 62        4C
+
+                                             9                                              :V126
+
+                                                                                 2025  03  14
+                                                                           485 
+
+12. 
+      0x000F
+      
+      ReadWORD/ WriteWORD,
+
+BIT                                                                            
+                                                              
+0~15                UINT16     1~65535  
+
+= x4
+
+ 1000
+
+                                                                                     CRC 
+                           00           0F             00
+         01     03                                               01              B4        09
+                                                
+                           02           03              E8       CRC 
+
+        01    03                                             B8        FA
+
+ 2500, 0x09C4
+
+                                                                                     CRC 
+                06         00           0F               09         C4
+ / 01                                                                            BE        0A
+
+13. 
+      0x0010
+      X10  1()
+      ReadWORD/ WriteWORD
+
+BIT                                                              
+
+0~15                UINT16     1~65535              20 1.8°
+
+ 20
+
+                                                                                     CRC 
+                           00           10             00
+         01     03                                               01              85        CF
+                                                
+                           02           00             14        CRC 
+
+        01    03                                             B8        4B
+
+ 100, 0x0064
+
+                                                                                     CRC 
+                06         00           10               00         64
+ / 01                                                                            89        E4
+
+14. 
+      0x0011
+      
+      ReadWORD
+
+BIT                                                                                   
+                               -32768~32767        0.01 
+0~15                INT16                         112 Counts
+  
+
+
+
+                                                                                     CRC 
+                                        11             00
+         01     03    00                                         01        D4              0F
+                                                
+                                        00             00        CRC 
+
+        01    03    02                                       B8        44
+
+                                        10                                             :V126
+
+                                                                           2025  03  14
+                                                                                           485 
+
+15.                                                                                                      
+      0x0012                            BIT  0~1           0                                        0
+                                        BIT  0~1           0                                        0
+      ReadWORD                          BIT  0~1           0                                        0
+         BIT                            BIT  0~1           0                                        0
+         15                USB          BIT  0~1           0                       USB 0 1 
+         14                             BIT  0~1           0    1  7  36 154 25
+         13                             BIT  0~1           0                           1 
+         12          0                  BIT  0~1           0             0 1  Z  16 
+         11                             BIT  0~1           0                           0 1 
+         10                             BIT  0~1           0                          0 1 
+          9                             BIT  0~1           0                       0 1 
+          8                             BIT  0~1           0                      0  1 
+          7                             BIT  0~1           0                  0 1 
+          6                             BIT  0~1           0                     0 1 
+          5                             BIT  0~1           0                     0 1 
+          4                             BIT  0~1           0                  0 1 
+          3
+          2
+          1
+          0
+
+:
+
+                                                                                               CRC 
+                                                    12                  00
+         01               03      00                                            01         24        OF
+                                                                 
+                                                    00                  00      CRC 
+
+                01      03      02                                          B8        44
+
+
+
+                                                                                               CRC 
+                                       00                   12         00          09
+                    01      06                                                             E9        C9
+          /
+
+16. 
+      0x0015
+      
+      ReadWORD
+
+BIT                                                                                      
+                                UINT16       1~4095                         
+0~15    
+
+
+
+                                                                                               CRC 
+                                       00           15                  00
+         01               03                                                    01         95        CE
+                                                                 
+                                       02           00                  00      CRC 
+
+                01      03                                                  B8        44
+
+17. 
+      0x0016
+      
+      ReadWORD/ WriteWORD
+
+BIT                                                                             
+
+0~15                            UINT16 0~65535                   0 :/
+
+ 0 
+
+
+
+                                                                                               CRC 
+                                       00           16                  00
+         01               03                                                    01         65        CE
+                                                                 
+                                       02           00                  27      CRC 
+
+                01      03                                                  F8        5E
+
+
+
+                                                                                               CRC 
+                          06           00           16                 00          00
+ / 01                                                                                      68        0E
+
+                                                     11                                          :V126
+
+                                                                                           2025  03  14
+                                                                                 485 
+
+18./
+      0x0017
+      
+      ReadWORD/ WriteWORD
+
+BIT                                                                    
+
+0~15                    UINT16        1~65535           50 
+
+ 200
+
+                                                                                     CRC 
+                             00                  17            00
+         01       03                                                   01        34        0E
+                                                        
+                             02                  00            C8      CRC 
+
+        01      03                                                 B9      D2
+
+ 1000  2000, 0x07D0
+
+                                                                                     CRC 
+                             00                  17           07          D0
+ /          01  06                                                               3A        62
+
+19. ( SV113  0x00D6~0x00D7 )
+      0x0019
+      
+      ReadWORD
+
+BIT                                                                
+
+0~15                  INT16 -32768~32767       0       /
+
+ 0
+
+                                                                                     CRC 
+                             00                  19            00
+         01       03                                                   01        55  CD
+                                                        
+                             02                  00            00      CRC 
+
+        01      03                                                 B8        44
+
+20. 
+      0x001A
+      
+      ReadWORD
+
+BIT                                                                            
+                              UINT16  0~65535       0  mA,
+0~15    
+
+
+
+                                                                                     CRC 
+                                                 1A            00
+         01       03      00                                           01        A5  CD
+                                                        
+                                                 02            0D      CRC 
+
+        01      03            02                                   78        E1
+
+
+
+21.  0 
+      0x001B
+       0(X0)
+      ReadWORD/ WriteWORD,
+
+BIT                                                                    
+
+0~15    X0            UINT16          0~65535          X0( 0)ms
+
+ 2
+
+                                                                                     CRC 
+                             00                  1B            00
+         01       03                                                   01        F4        0D
+                                                        
+                             02                  00            02      CRC 
+
+        01      03                                                 39        85
+
+ 0  50ms
+
+                                                                                     CRC 
+                  06         00                  1B           00          32
+ / 01                                                                            78        18
+
+                                               12                                      :V126
+
+                                                                                 2025  03  14
+                                                                       485 
+
+22.  1 
+      0x001C
+       1(X1)
+      ReadWORD/ WriteWORD,
+
+BIT                                                          
+
+0~15    X1         UINT16     0~65535        X1( 1)ms
+
+ 2
+
+                                                                           CRC 
+                          00           1C            00
+         01    03                                            01        45        CC
+                                              
+                          02           00            02      CRC 
+
+        01   03                                          39        85
+
+ 1  50ms
+
+                                                                           CRC 
+               06         00           1C           00          32
+ / 01                                                                  C9        D9
+
+23.  2 
+      0x001D
+       2(X2)
+      ReadWORD/ WriteWORD,
+
+BIT                                                          
+
+0~15    X2         UINT16     0~65535        X2( 2)ms
+
+ 2
+
+                                                                           CRC 
+                          00           1D            00
+         01    03                                            01        14        0C
+                                              
+                          02           00            02      CRC 
+
+        01   03                                          39        85
+
+ 2  50ms
+
+                                                                           CRC 
+               06         00           1D           00          32
+ / 01                                                                  98        19
+
+24.  3 
+      0x001E
+       3(X3)
+      ReadWORD/ WriteWORD,
+
+BIT                                                          
+
+0~15    X3         UINT16     0~65535        X3( 3)ms
+
+ 2
+
+                                                                           CRC 
+                          00           1E            00
+         01    03                                            01        E4        0C
+                                              
+                          02           00            02      CRC 
+
+        01   03                                          39        85
+
+ 3  150ms
+
+                                                                           CRC 
+               06         00           1E           00          96
+ / 01                                                                  69        A2
+
+                                       13                                    :V126
+
+                                                                       2025  03  14
+                                                                       485 
+
+25.  4 
+      0x001F
+       4(X4)
+      ReadWORD/ WriteWORD,
+
+BIT                                                          
+
+0~15    X4         UINT16     0~65535        X4( 4)ms
+
+ 2
+
+                                                                           CRC 
+                          00           1F            00
+         01    03                                            01        B5        CC
+                                              
+                          02           00            02      CRC 
+
+        01   03                                          39        85
+
+ 4  200ms
+
+                                                                           CRC 
+               06         00           1F           00          C8
+ / 01                                                                  B9        9A
+
+26.  5 
+      0x0020
+       5(X5)
+      ReadWORD/ WriteWORD,
+
+BIT                                                          
+
+0~15    X5         UINT16     0~65535        X5( 5)ms
+
+ 2
+
+                                                                           CRC 
+                          00           20            00
+         01    03                                            01        85        C0
+                                              
+                          02           00            02      CRC 
+
+        01   03                                          39        85
+
+ 5  250ms
+
+                                                                           CRC 
+               06         00           20           00          FA
+ / 01                                                                  08        43
+
+27.  6 
+      0x0021
+       6(X6)
+      ReadWORD/ WriteWORD,
+
+BIT                                                          
+
+0~15    X6         UINT16     0~65535        X6( 6)ms
+
+ 2
+
+                                                                           CRC 
+                          00           21            00
+         01    03                                            01        D4        00
+                                              
+                          02           00            02      CRC 
+
+        01   03                                          39        85
+
+ 6  300ms
+
+                                                                           CRC 
+               06         00           21           01          2C
+ / 01                                                                  D9        8D
+
+                                       14                                    :V126
+
+                                                                       2025  03  14
+                                                                                        485 
+
+28.  7 
+      0x0022
+       7(X7)
+      ReadWORD/ WriteWORD,
+
+BIT                                                                           
+
+0~15    X7           UINT16        0~65535               X7( 7)ms
+
+ 2
+
+                                                                                            CRC 
+                            00                   22              00
+           01    03                                                           01        24             00
+                                                          
+                            02                   00              02           CRC 
+
+          01   03                                                         39        85
+
+ 7  500ms
+
+                                                                                            CRC 
+                 06         00                   22             01               F4
+ / 01                                                                                   29             D7
+
+29. 32 
+    0x0024~0x0025
+     32  65535 
+    ReadDWORD/WriteDWORD, 
+
+BIT                                                                           
+
+0~31      32         UINT32 200~1000000                   4000:/
+
+ 4000
+
+                                                                                        CRC 
+                            00            24              00          02
+           01    03                                                                 84             00
+                                                               
+                            04            0F              A0          00                           CRC 
+
+          01   03                                                                   00        F9       05
+
+ 10000
+
+                                                                                                   CRC 
+                                                                     10         00             00  FB 35
+
+  01 10        00    24      00 02        04         27
+
+                                              CRC 
+                   
+
+   01 10       00    24      00 02        01         C3
+
+30. 
+    0x0026
+    
+    ReadWORD/WriteWORD, 
+
+BIT                                                                           
+
+0~15                 UINT16      0~65535                      , 0.01mH
+
+
+
+ 3.7 mH 370
+
+                                                                                            CRC 
+                                                 26              00
+           01    03            00                                             01        65             C1
+                                                          
+                                                 01              72           CRC 
+
+          01   03            02                                           39        F1
+
+ 1.5mH 0x0096
+
+                                                                                            CRC 
+                 06         00                   26             00               96
+ / 01                                                                                   E8             6F
+
+                                              15                                                :V126
+
+                                                                                        2025  03  14
+                                                                                  485 
+
+31. 
+    0x0027
+    
+    ReadWORD/WriteWORD, 
+
+BIT                                                                     
+
+0~15                    UINT16      0~65535             , 0.01
+
+
+
+ 0.6 60
+
+                                                                                      CRC 
+                               00                   27          00
+         01    03                                                       01        34        01
+                                                         
+                               02                   00          3C      CRC 
+
+        01   03                                                     B8        55
+
+ 1 0x0064
+
+                                                                                      CRC 
+               06              00                   27         00          64
+ / 01                                                                             38        2A
+
+32. 
+    0x0044
+    
+    ReadWORD/WriteWORD
+
+BIT                                                                              
+                        UINT16      0~65535             , 0.01V
+0~15 
+
+ 24.21V
+
+                                                                                      CRC 
+                                                    44          00
+         01    03                 00                                    01        C4        1F
+                                                         
+                                                    09          75      CRC 
+
+        01   03                 02                                  7F        F3
+
+ 0 
+
+                                                                                      CRC 
+               06              00                   44         00          00
+ / 01                                                                             C9        DF
+
+33. 
+    0x0045
+    
+    ReadWORD/WriteWORD
+
+BIT                                                                               
+                        UINT16      0~65535             , 0.01A
+0~15 
+
+ 4.16A
+
+                                                                                      CRC 
+                               00                   45          00
+         01    03                                                       01        95        DF
+                                                         
+                               02                   01          A0      CRC 
+
+        01   03                                                     B9        AC
+
+ 0 
+
+                                                                                      CRC 
+               06              00                   45         00          00
+ / 01                                                                             98        1F
+
+                                             16                                         :V126
+
+                                                                                  2025  03  14
+                                                                                  485 
+
+34. 
+    0x0046
+    
+    ReadWORD/WriteWORD
+
+BIT                                                                                         
+                                    0~65535                       ,
+0~15                    UINT16                          112 Counts
+
+ 199 
+
+                                                                                      CRC 
+                                                    46          00
+        01    03                  00                                    01        65          DF
+                                                         
+                                                    00          C7      CRC 
+
+       01   03                  02                                  F9      D6
+
+ 0 
+
+                                                                                      CRC 
+              06               00                   46         00          00
+ / 01                                                                             68          1F
+
+35. 
+    0x0047
+    
+    ReadWORD/WriteWORD
+
+BIT                                                                                         
+                                    0~65535                       ,
+0~15                    UINT16                          112 Counts
+
+ 56 
+
+                                                                                      CRC 
+                                                    47          00
+        01    03                  00                                    01        34          1F
+                                                         
+                                                    00          38      CRC 
+
+       01   03                  02                                  B9        96
+
+ 0 
+
+                                                                                      CRC 
+              06               00                   47         00          00
+ / 01                                                                             39          DF
+
+36. 
+    0x0048
+    
+    ReadWORD/WriteWORD
+
+BIT                                                                              
+                        UINT16      0~65535             , 0.01V
+0~15 
+
+ 23.80V
+
+                                                                                      CRC 
+                                                    48          00
+        01    03                  00                                    01        04          1C
+                                                         
+                                                    09          4C      CRC 
+
+       01   03                  02                                  BF        E1
+
+ 0 
+
+                                                                                      CRC 
+              06               00                   48         00          00
+ / 01                                                                             09  DC
+
+                                             17                                         :V126
+
+                                                                                  2025  03  14
+                                                                           485 
+
+37. 
+    0x0066
+    , 1 =+-1=
+    ReadWORD/WriteWORD 
+
+BIT                                                              
+
+0~15                 UINT16  1~65535              1
+
+ 1
+
+                                                                               CRC 
+                              00             66          00
+           01    03                                              01        64        15
+                                                  
+                              02             00          01      CRC 
+
+          01   03                                            79        84
+
+   2                                                                           CRC 
+           01    06           00             66         00          02
+                                                                           E8        14
+ /
+
+38. 
+    0x006B
+    
+    ReadWORD/WriteWORD 
+
+BIT                                                              
+
+0~15                 UINT16  0~1                  0(CW)
+
+
+
+                                                                               CRC 
+                              00             6B          00
+           01    03                                              01        F5        D6
+                                                  
+                              02             00          00      CRC 
+
+          01   03                                            B8        44
+
+ 1(CCW)
+
+                                                                               CRC 
+                 06           00             6B         00          01
+ / 01                                                                      39        D6
+
+39. 
+
+0x006C
+
+
+
+WriteWORD 
+
+     BIT                                                                         
+                                      BIT  0~1                      X7 
+     15         X7                    BIT  0~1                      X6 
+                                      BIT  0~1                      X5 
+     14         X6                    BIT  0~1                      X4 
+                                      BIT  0~1                      X3 
+     13         X5                    BIT  0~1                      X2 
+                                      BIT  0~1                      X1 
+     12         X4                    BIT  0~1                      X0 
+                                      BIT  0~1    X7  1 
+     11         X3                    BIT  0~1    X6  1 
+                                      BIT  0~1    X5  1 
+     10         X2                    BIT  0~1    X4  1 
+                                      BIT  0~1    X3  1 
+     9          X1                    BIT  0~1    X2  1 
+                                      BIT  0~1    X1  1 
+     8          X0                    BIT  0~1    X0  1 
+
+     7          X7 
+
+     6          X6 
+
+     5          X5 
+
+     4          X4 
+
+     3          X3 
+
+     2          X2 
+
+     1          X1 
+
+     0          X0 
+
+ X2 
+
+                                                                               CRC 
+                 06           00             6C         00          04
+ / 01                                                                      48        14
+
+                                           18                                    :V126
+
+                                                                           2025  03  14
+                                                                        485 
+
+40. 
+    0x0096
+    ,
+    ReadWORD/WriteWORD 
+
+BIT                                                           
+
+0~15              UINT16  0~300                50/
+
+ 50
+
+                                                                            CRC 
+                         00               96          00
+        01    03                                              01        64        26
+                                               
+                         02               00          32      CRC 
+
+       01   03                                            39        91
+
+ 0
+
+                                                                            CRC 
+              06         00               96         00          00
+ / 01                                                                   69        E6
+
+41. 
+    0x0097
+    
+    ReadWORD/WriteWORD 
+
+BIT                                                           
+
+0~15              UINT16  0~1000               50/
+
+ 50
+
+                                                                            CRC 
+                         00               97          00
+        01    03                                              01        35        E6
+                                               
+                         02               00          32      CRC 
+
+       01   03                                            39        91
+
+ 0
+
+                                                                            CRC 
+              06         00               97         00          00
+ / 01                                                                   38        26
+
+42. 
+    0x0098
+    
+    ReadWORD/WriteWORD 
+
+BIT                                                           
+
+0~15              UINT16  0~65535              120 ms
+
+ 120
+
+                                                                            CRC 
+                         00               98          00
+        01    03                                              01        05        E5
+                                               
+                         02               00          78      CRC 
+
+       01   03                                            B8        66
+
+ 200ms
+
+                                                                            CRC 
+              06         00               98         00          C8
+ / 01                                                                   09        B3
+
+                                   19                                         :V126
+
+                                                                        2025  03  14
+                                                                                             485 
+
+43. 
+    0x0099
+    
+    ReadWORD/WriteWORD 
+
+BIT                                                                           
+
+0~15                UINT16  0~65535                             120 ms
+
+
+
+                                                                                                     CRC 
+                           00               99                  00
+          01    03                                                                01             54        25
+                                                         
+                           02               00                  78            CRC 
+
+         01   03                                                          B8          66
+
+ 300ms
+
+                                                                                                     CRC 
+                06         00               99                 01                2C
+ / 01                                                                                            59        A8
+
+44. ( SV113  0x00D8~0x00D9 )
+    0x009A
+    
+    ReadWORD/WriteWORD 
+
+BIT                                                                           
+
+0~15                UINT16  0~10000                             300/
+
+
+
+                                                                                                     CRC 
+                           00               9A                  00
+          01    03                                                                01             A4        25
+                                                         
+                           02               01                  2C            CRC 
+
+         01   03                                                          B8          09
+
+ 200 /
+
+                                                                                                     CRC 
+                06         00               9A                 00                C8
+ / 01                                                                                            A8        73
+
+45. 
+    0x006E~0x006F
+    
+    ReadDWORD/WriteDWORD 
+
+BIT                                                                                   
+
+0~31  INT32                 -2147483648~2147483647  -2147483648 
+
+
+
+                                                                                          CRC 
+
+          01    03    00              6E                   00         02                 A5              D6
+                                                                                                     CRC 
+
+         01   03        04           00             00             80                 00             9B    F3
+
+-10000
+
+                                                                                                         CRC 
+                  
+
+  01 10       00    6E      00 02    04             D8         F0             FF             FF          4F 28
+
+                                         CRC 
+                  
+
+   01 10      00    6E      00 02    20             15
+
+                                         20                                                            :V126
+
+                                                                                             2025  03  14
+                                                                                                            485 
+
+46. 
+    0x0070~0x0071
+    
+    ReadDWORD/WriteDWORD 
+
+BIT                                                                                                   
+                                                                                             
+0~31  INT32                      -2147483648~2147483647       2147483647
+
+
+
+                                                                                                         CRC 
+
+              01      03       00               70                   00              02                 C5              D0
+                                                                                                                    CRC 
+
+             01     03           04          FF               FF                  7F             FF                 9A    67
+
+ 10000
+
+                                                                                                                        CRC 
+                        
+
+  01 10             00       70       00 02       04          27              10             00             00          FF FA
+
+                                                      CRC 
+                        
+
+   01 10            00       70       00 02       40          13
+
+47.
+
+0x009B
+
+
+
+ReadWORD/WriteWORD 
+
+     BIT                                                                                     
+
+     15~13                                   BIT         0~1                      000 001 
+
+     12                                      BIT         0~1              0 (PNP)1 (NPN)
+
+     11~8                                    BIT      0~15                        X0~X15  0~15
+
+     7~5                                     BIT         0~1                      000 001 
+
+     4                                       BIT         0~1              0 (PNP)1 (NPN)
+
+     3~0                                     BIT      0~15                        X0~X15  0~15
+
+:,,,.
+
+
+
+
+
+                                                                                                                    CRC 
+
+              01      03           00                    9B                 00                   01             F5        E5
+                                                                                             CRC 
+
+             01     03               02               00                  00             B8          44
+
+ NPN  X0 X1  0011 0000 0011 0001 16 0x3031
+
+                                                                                                                    CRC 
+                      06            00                   9B                 30                  31
+ / 01                                                                                                           2D        F1
+
+48.
+
+                                 BIT                                                                 
+
+                                 15~13    BIT                        0~1 000 001 
+                          
+     0x009C                       12                          BIT    0~1 0 (PNP)1 (NPN)
+                                 11~8    
+ReadWORD/WriteWORD                                            BIT 0~15 X0~X15  0~15
+
+                                 7~5      BIT                        0~1 000 001 
+                                                                     0~1 0 (PNP)1 (NPN)
+                                 4                            BIT
+
+                                 3~0                          BIT 0~15 X0~X15  0~15
+
+     0x009D                       15                          BIT    0~1 0  CW1  CCW()
+                                 14~0    
+ReadWORD/WriteWORD                                            BIT  0~32767    01
+                                                                              
+
+     0x00AE                      15~8                         BIT    0~1      0 ()1
+                                 7~0                                          ()
+ReadWORD/WriteWORD
+                                                                              Y0~Y7  1~8 0 
+                                                              BIT    0~8      
+
+                                 15                           BIT    0~1 0 1 
+
+     0x00C9                      14~6                         BIT 0~511  50 0 0011 0010
+
+  WriteWORD                      5                            BIT    0~1 0 1 
+
+                                 4~0                          BIT    0~31     , 5 , 0 
+                                                                               31*5=155 /
+
+:,,,.
+
+                                                      21                                                              :V126
+
+                                                                                                            2025  03  14
+                                                                       485 
+
+
+
+ NPN  X2  0000 0000 0011 0010 16 0x0032
+
+                                                                           CRC 
+                 06         00         9C         00          32
+ / 01                                                                  C8        31
+
+                                                                           CRC 
+
+           01    03    00              9C         00           01      44        24
+                                                           CRC 
+
+          01   03    02         00         32          39          91
+
+()
+, 500  0 000 0001 1111 0100 0x01F4
+
+                                                                           CRC 
+                 06         00         9D         01          F4
+ / 01                                                                  18        33
+
+                                                                           CRC 
+
+           01    03    00              9D         00           01      15        E4
+                                                           CRC 
+
+          01   03    02         01         F4          B8          53
+
+()
+ Y1 Y1  PLC,  0x0002
+
+                                                                           CRC 
+                 06         00         AE         00          02
+ / 01                                                                  69        EA
+
+                                                                           CRC 
+           01    03         00         AE          00
+                                                           01          E5        EB
+           01                               
+                 03         02         00          02      CRC 
+        
+                                                       39          85
+
+(,,,)
+
+ 200 / 10()*5=50 / 1 011001000 1 01010
+ 0xB22A.
+
+                                                                           CRC 
+                 06         00         C9         B2          2A
+ / 01                                                                  AC        8B
+
+                                22                                           :V126
+
+                                                                       2025  03  14
+                                                                                      485 
+
+49.()
+
+                                  BIT                                                                 
+                                                       BIT    1    1
+           0x009E           15~8                       BIT    2    2,
+ReadWORD/WriteWORD                                     BIT    3
+                            7~0                        BIT    4            
+                             15                        BIT         3
+                            14~1                       BIT  0~1    4
+  0x00CB                      0                             0~1    256 0 255 
+WriteWORD                                              BIT        
+                                                            0~15  
+                                                       BIT        0 1 
+                                                            0~1   
+                                                                  
+                                                                  
+                                                                  
+                                                                  0 1 
+
+
+
+ 50 0x0132
+
+                                                                                          CRC 
+                      06         00                9E              01          32
+ / 01                                                                                 68        61
+
+                                                                                          CRC 
+            01        03         00                9E               00
+                                                                            01        E5        E4
+            01                                               
+                      03         02                01               32      CRC 
+        
+                                                                        38        01
+
+()
+
+ 500 0 0000011111010 01 0x03E9
+
+                                                                                          CRC 
+                      06         00                CB              03          E9
+ / 01                                                                                 39        4A
+
+
+
+
+50. 
+    0x009F
+    
+    ReadWORD/ WriteWORD,
+
+BIT                                                                         
+
+0~15                      UINT16       1~3                          IO 
+
+1 2 3I/O 
+
+ X0(CW) X1(CCW)X0 X1 
+
+ 3IO 
+
+                                                                                          CRC 
+                                 00                9F               00
+            01        03                                                    01        B4        24
+                                                             
+                                 02                00               03      CRC 
+
+           01       03                                                  F8        45
+
++
+
+                                                                                          CRC 
+                      06         00                9F              00          02
+ / 01                                                                                 38        25
+
+                                            23                                              :V126
+
+                                                                                      2025  03  14
+                                                                                           485 
+
+51.                                 BIT                                                
+                                   15~8                     BIT
+                                                        Y7  BIT  0 
+            0x00A0                   7                  Y6  BIT
+          WriteWORD                  6                  Y5  BIT  0~1  1 Y7
+                                     5                  Y4  BIT
+                                     4                  Y3  BIT  0~1  1 Y6
+                                     3                  Y2  BIT
+            0x00A1                   2                  Y1  BIT  0~1  1 Y5
+          WriteWORD                  1                  Y0  BIT
+                                     0                      BIT  0~1  1 Y4
+                                   15~8                 Y7  BIT
+                                     7                  Y6  BIT  0~1  1 Y3
+            0x00A2                   6                  Y5  BIT
+         ReadWORD                    5                  Y4  BIT  0~1  1 Y2
+                                     4                  Y3  BIT
+            0x00A5                   3                  Y2  BIT  0~1  1 Y1
+          WriteWORD                  2                  Y1  BIT
+                                     1                  Y0  BIT  0~1  1 Y0
+                                     0                      BIT
+                                   15~8                 Y7  BIT  0 
+                                     7                  Y6  BIT
+                                     6                  Y5  BIT  0~1  1 Y7
+                                     5                  Y4  BIT
+                                     4                  Y3  BIT  0~1  1 Y6
+                                     3                  Y2  BIT
+                                     2                  Y1  BIT  0~1  1 Y5
+                                     1                  Y0  BIT
+                                     0                           0~1  1 Y4
+                                                            BIT
+                                   15~8                          0~1  1 Y3
+                                                            BIT
+                                   7~0                           0~1  1 Y2
+
+                                                                 0~1  1 Y1
+
+                                                                 0~1  1 Y0
+
+                                                                 0 
+
+                                                                 0~1 1  Y7 0  Y7 
+
+                                                                 0~1 1  Y6 0  Y6 
+
+                                                                 0~1 1  Y5 0  Y5 
+
+                                                                 0~1 1  Y4 0  Y4 
+
+                                                                 0~1 1  Y3 0  Y3 
+
+                                                                 0~1 1  Y2 0  Y2 
+
+                                                                 0~1 1  Y1 0  Y1 
+
+                                                                 0~1 1  Y0 0  Y0 
+
+                                                                 0~1  0 ()1 (
+                                                                      )
+
+                                                                 0~8  Y0~Y7  1~8 0 
+                                                                      
+
+  0x00A6                           15~8                     BIT  0~1  0 ()1 (
+WriteWORD                          7~0                                )
+                          
+                                                            BIT  0~8  Y0~Y7  1~8 0 
+                                                                      
+
+  0x00A7                           15~8                     BIT  0~1  0 ()1 (
+WriteWORD                          7~0                                )
+                          
+                                                            BIT  0~8  Y0~Y7  1~8 0 
+                                                                      
+
+ Y0  Y1 
+      Y0  Y1 
+       Y0  Y1,
+
+
+ Y0,Y1,Y6
+ OUT0  OUT1 
+/
+
+                                                                                               CRC 
+                                                                         00         00
+ / 01                     06       00         A5 ()                      00         00     99        E9
+                                              A6 ()                      00         00
+ / 01                     06       00                                                      69        E9
+                                                                  
+/ 01                      06       00         A7 ()                      00                38        29
+
+ Y0,Y1,Y6 1000011, 16  0x0043                                     
+                                                                         00
+                                                                                               CRC 
+                            06            00         A0                             43
+ / 01                                                                    00                C8        19
+
+ 11111111, 16  0x00FF                                             
+                                                                         00
+                                                                                               CRC 
+                            06            00         A1                             FF
+ / 01                                                                                      98        68
+
+
+
+                                                                                               CRC 
+
+                      01    03       00              A2                          01        25        E8
+                                              
+                                                                                 CRC 
+
+                     01   03       02           00                           B8        44
+
+                                                24                                               :V126
+
+                                                                                           2025  03  14
+                                                                                                485 
+
+
+
+ Y0 
+
+ Y1 
+
+ Y0  Y1 
+
+                                                                                                    CRC 
+                                                                             00          00
+ / 01                  06              00         A5 ()                      00          00     99           E9
+                                                  A6 ()                      00          00
+ / 01                  06              00                                                       69           E9
+                                                                                  
+  / 01                 06              00         A7 ()                      01          01     38           29
+
+ Y0  Y1 
+
+ Y0 
+
+                                                                                                    CRC 
+                         06            00                  A6
+ / 01                                                                                           C8           19
+
+52. 
+
+                                BIT                                                       
+
+                                                                      0 
+
+                                15~13                                 1 
+
+    0x00A3                                                            2 
+  ReadWORD                                                            3 
+                                                                      4  A 
+                      11~8                 
+
+                                                            0~10      5  B 
+
+                                                                      6 
+
+4                               7~4                                   7  24V 
+                                                                      8 AI 
+
+                      3~0                                             9 BI 
+                                                                      10 
+
+    0x00A4                      0~15                        BIT       0  0
+  WriteWORD           
+
+  
+
+                                                                                                    CRC 
+                         03            00                  A3                 00
+              01                                                                      01        74           28
+                                                                       
+                         03            02                  00                 03      CRC 
+
+             01                                                                   F8        45
+
+                                                                                                    CRC 
+              01         06            00                  A4                00          00
+                                                                                                04           29
+ /
+
+53.                             BIT                                                                        
+                                                                            X11
+                     ReadDWORD                       -2147483648            X17    0 
+      0x00A8~0x00A9                                  2147483647             X18    1 
+      0x00C2~0x00C3  WriteDWORD  0~31      INT32                            X19    31  31 
+      0x00C4~0x00C5
+      0x00C6~0x00C7                    
+
+:X11 -500 
+
+                                                                                                           CRC 
+                                                                             0C          7F            FF  69 EA
+
+  01 10                00       A8         00 02    04            FE
+
+                                                        CRC 
+                           
+
+   01 10               00       A8         00 02    C0            28
+
+:X17  5000 
+
+                                                                                                 CRC 
+                                                                             88          80
+
+  01 10                00       C2         00 02    04            13                            00           9B 48
+
+                                                        CRC 
+                           
+
+   01 10               00       C2         00 02    E0            34
+
+                                                        25                                             :V126
+                                                                                                2025  03  14
+                                                                                                                                485 
+
+54. 
+
+                             BIT                                                                                           
+                           0~15         
+0x00AA
+                           0~15       
+WriteWORD                                            BIT 1~2048 
+                           0~15      
+                             15         
+                                        
+0x00AB                     14~12                                        0
+                           11~0                                        
+WriteWORD                                            BIT  0~4095
+
+
+
+0x00AC
+
+WriteWORD                                            BIT 300~2048  32 
+
+
+
+                                                     BIT      0~1 0 1 
+
+  0x00DD                                             BIT      0~1 0 1 
+WriteWORD
+                                                     BIT  0~4095       
+                                                                       
+
+
+
+ s t e p -config 
+
+                                                                                                                                          
+                                                                       524~525                                      1345    18  536~537  2345
+0          500~501 25535          6  512~513 12345        12           526~527                                     -6000    19  538~539  -5600
+                                                                       528~529                                     56315    20  540~541  8635
+1          502~503 -13575         7  514~515  -600        13           530~531                                     -35615   21  542~543  -1365
+                                                                       532~533                                      2565    22  544~545  15635
+2          504~505 12352          8  516~517  5635        14           534~535                                     -2535    23  546~547  -5635
+
+3          506~507 -11231         9  518~519 -3565        15
+
+4          508~509 24563   10        520~521 25635        16
+
+5          510~511 -18963  11        522~523 -25635       17
+
+ 24 
+
+ 300 300~400
+ 500
+
+
+             500~501: 01 10 01 F4 00 02 04 63 BF 00 00 DF 28 (25535)
+                                                 502~503: 01 10 01 F6 00 02 04 CA F9 FF FF 9F 08 (-13575)
+                                                 ......
+
+ 200 
+01 10 01 F4 00 30 60 63 BF 00 00 CA F9 FF FF 30 40 00 00 D4 21 FF FF 5F F3 00 00 B5 ED FF FF 30 39 00 00 FD A8 FF FF 16 03 00 00 F2 13 FF FF 64 23 00 00 9B
+DD FF FF 05 41 00 00 E8 90 FF FF DB FB 00 00 74 E1 FF FF 0A 05 00 00 F6 19 FF FF 09 29 00 00 EA 20 FF FF 21 BB 00 00 FA AB FF FF 3D 13 00 00 E9 FD FF FF
+14 91
+
+ 4 
+
+
+            24  24
+
+                                              01 06 00 AA 00 18 A9 E0
+
+, 0 
+            21 -1365 21
+                                                                                          01 06 00 AB 00 15 39 E5
+
+
+            500~501
+            500-300=200.
+                                                                                          01 06 00 AC 00 C8 48 7D
+
+
+            1( 22  21 ) 1. 
+            
+
+                                                                                         01 06 00 DD 10 01 D5 F0
+
+                                                 26                                                                               :V126
+
+                                                                                                                                2025  03  14
+                                                                                 485 
+
+55. 
+
+                              BIT                                          
+                              15            
+                              14                  BIT  0~1  0
+                            13~10        
+                               9                  BIT  0~1 0 1 
+                             8~5         
+                               4         
+                             3~0         
+                                                  BIT  0~8  Y0~Y7  1~8 0 
+                                                            
+   0x00AD  
+WriteWORD                                         BIT  0~1 0 1 
+/ReadWORD  
+                                                  BIT  0~8  X0~X7  1~8 0 
+                                                            
+
+                                                  BIT  0~1 0 1 
+
+           
+
+                                                  BIT  0~8  X0~X7  1~8 0 
+                                                            
+           
+
+: X3 ()X4 () Y2 
+
+ 1 0011 0 0100 1 0101 0x4C95
+
+                                                                                     CRC 
+                        06         00            AD           4C          95
+ / 01                                                                            EC        84
+
+                                                                                     CRC 
+                01      03         00            AD            00
+                                                                       01        15        EB
+                01                                      
+                        03         02            4C            95      CRC 
+
+                                                                   4C        EB
+
+56. 
+
+                                     BIT                                      
+
+ 0x00AF                            15~12               BIT  0~15 X0~X14  1~15 0
+ 0x00B0                                                               
+ 0x00B1                              11                BIT
+ 0x00B2                                                     0~1 0 1 
+                                     10                BIT
+    WriteWORD                                               0~1    0 /; 1 /
+  /ReadWORD                         9~8                BIT         
+
+                                    7~0                BIT  0~2  0 1  2 
+
+                                     15   0x00AF       BIT  0~255   5  100
+                                   14~0    0x00AF      BIT          500/
+                                          0x00B0       BIT
+  0x00B3          0x00AF             15    0x00B0      BIT  0~1  0x00AF  4  32 
+  0x00B4        0x00AF 7~0         14~0   0x00B1       BIT
+  0x00B5                                   0x00B1      BIT  0~5000 0x00AF  /
+  0x00B8          0x00B0             15   0x00B2       BIT
+                0x00B0 7~0         14~0    0x00B2      BIT  0~1  0x00B0  4  32 
+
+                  0x00B1             15                     0~5000 0x00B0  /
+                0x00B1 7~0         14~0
+                                                            0~1  0x00B1  4  32 
+                  0x00B2 
+                0x00B2 7~0                                  0~5000 0x00B1  /
+
+                                                            0~1  0x00B2  4  32 
+
+                                                            0~5000 0x00B2  /
+
+
+
+   0x00AF~0x00B2, 4  4 
+
+
+
+          0x00AF~0x00B2, 4  7  4  16  0x0006 
+ 0x00B3~0x00B5  0x00B8  4  14 
+
+ X0 , 50 / 1 0 1 00 0000 1010 0x140A
+
+                                                                                     CRC 
+                        06         00            AF           14          0A
+ / 01                                                                            36        EC
+
+ 47 / 0x00AF  0x00B3 
+
+                                                                                     CRC 
+                        06         00            B3           00          2F
+ / 01                                                                            39        F1
+
+                                              27                                       :V126
+
+                                                                                 2025  03  14
+                                                                                          485 
+
+ X17 , 1000 / 0010 1110 0000 1010 0x2E 0A
+
+  X17>151000>255, B4 , 1. 14  1000 0x8 3E8
+
+                                                                                              CRC 
+                   01    06         00            B0                2E                0A
+  /                01    06         00            B4                83                E8  15         8A
+
+
+  /                                                                                       A8         92
+
+AF>B0>B1>B2
+
+
+57.                          BIT                                                                        
+                                                             0~8        X0~X14  1~15 0
+                             31~28                      BIT  0~1        
+   0x00B6~0x00B7                                             0~1        0 1 
+      WriteWORD              27                         BIT  0~2        0 /1 /
+     /ReadWORD                                                          
+                             26                         BIT              0 1  2 
+
+                             25~24                      BIT
+
+                             23~0                       BIT  0~16777215 
+                                                    
+
+
+
+X0  200 
+
+   1 0 1 01 0000 0000 0000 0000 1100 1000  0x1500 00C8
+
+                                                                                                     CRC 
+                                                                           C8         15         00  F7 9F
+
+  01 10                  00  B6     00 02  04            00
+
+                                                   CRC 
+                           
+
+   01 10                 00  B6     00 02  A0            2E
+
+                                                                                          CRC 
+                   01    03         00         B6               00          02
+                                                                                25                   ED
+                   01                                                
+                         03         04         00               C8          15                  CRC 
+
+                                                                                00              75        5D
+
+58. ()
+
+                             BIT                                                                        
+                                                                        X0~X7  1~8 0 
+                             31~28                      BIT  0~15       
+                                                                        0 1 
+                               27                       BIT  0~1        0  CW1  CCW
+                               26                       BIT  0~1        
+                             25~24                      BIT             X0~X7  1~8 0 
+                                                               0        
+                                                        BIT             0 1 
+                             23~20                           0~15       0  CW1  CCW
+                                                        BIT             
+0x00BA~0x00BB                  19                       BIT  0~1        X0~X7  1~8 0 
+   WriteWORD                   18                       BIT  0~1        
+  /ReadWORD                  17~16                                      0 1 
+                                                        BIT    0        0  CW1  CCW
+                             15~12                                      
+                                                        BIT  0~15       X0~X7  1~8 0 
+                               11                       BIT             
+                               10                       BIT  0~1        0 1 
+                              9~8                            0~1        0  CW1  CCW
+                                                        BIT             
+                                                               0
+                                                        BIT
+                             7~4                        BIT  0~15
+                                                        BIT
+                             3                               0~1
+                                                             0~1
+                             2
+                                                               0
+                             1~0
+
+                                               28                                               :V126
+
+                                                                                          2025  03  14
+                                                                                               485 
+
+:
+
+ X0  CW X1  CCW  10110000011000  0x0000 2C18
+
+                                                                                                          CRC 
+                                                                                        00            00  F0 33
+
+  01 10             00    BA          00 02     04               2C    18
+
+                                                           CRC 
+                        
+
+    01 10           00    BA          00 02     60               2D
+
+                                                                                               CRC 
+             01       03         00                    BA          00          02
+                                                                                           E5             EE
+             01                                                         
+                      03         04                    2C          18          00                    CRC 
+
+                                                                                           00        72       A4
+
+59. 
+    0x00BE
+    ,
+    ReadWORD/WriteWORD, 
+
+  BIT                                                                                
+
+  0~15                    INT16         -80~80                        0,
+
+
+
+
+
+   0
+
+                                                                                                   CRC 
+                                 00                    BE                    00
+           01         03                                                             01        E4         2E
+                                                                      
+                                 02                    00                    00      CRC 
+
+            01      03                                                           B8        44
+
+  -5 0xFFFB
+
+                                                                                                   CRC 
+                                 00                    BE                   FF          FB
+ /              01  06                                                                         E9         9D
+
+60. 
+    0x00BF
+
+  
+
+  ReadWORD/WriteWORD, 
+
+  BIT                                                                                
+
+  0~15                    UINT16      0~65535                         100 
+
+,,
+
+
+   100 1
+
+                                                                                                   CRC 
+                                                       BF                    00
+           01         03            00                                               01        B5         EE
+                                                                      
+                                                       00                    64      CRC 
+
+            01      03            02                                             B9        AF
+
+   1000 10 0x03E8
+
+                                                                                                   CRC 
+                                 00                    BF                   03          E8
+ /              01  06                                                                         B8         90
+
+                                                    29                                               :V126
+
+                                                                                               2025  03  14
+                                                                                 485 
+
+61. 
+    0x0029
+
+
+
+ReadWORD/WriteWORD, 
+
+BIT                                                                    
+
+0~15  UINT16                      0~65535                          
+
+
+
+ 100 0.001
+
+                                                                                     CRC 
+                                                  29          00
+         01       03            00                                     01        55        C2
+                                                       
+                                                  00          64       CRC 
+
+        01      03            02                                   B9        AF
+
+ 10 0.0001 0x000A
+
+                                                                                     CRC 
+                             00                   29         00           0A
+ /          01  06                                                               D8        05
+
+62. 
+    0x00C0
+
+
+ReadWORD/WriteWORD, 
+
+BIT                                                                    
+
+0~15                  UINT16      0~65535              100 
+
+
+
+
+
+
+
+ 100 1
+
+                                                                                     CRC 
+                                                  C0          00
+         01       03            00                                     01        84        36
+                                                       
+                                                  00          64       CRC 
+
+        01      03            02                                   B9        AF
+
+ 500 5 0x01F4
+
+                                                                                     CRC 
+                             00                   C0         01           F4
+ /          01  06                                                               89        E1
+
+63. 
+    0x00C1
+
+
+
+ReadWORD/WriteWORD, 
+
+BIT                                                                    
+
+0~15  UINT16                      0~65535              100 
+
+
+
+ 1000, 10
+
+                                                                                     CRC 
+                                                  C1          00
+         01       03            00                                     01        D5        F6
+                                                       
+                                                  03           E8      CRC 
+
+        01      03            02                                   B8        FA
+
+ 100 1 0x0064
+
+                                                                                     CRC 
+                             00                   C1         00           64
+ /          01  06                                                               D9  DD
+
+                                           30                                          :V126
+
+                                                                                 2025  03  14
+                                                                                                 485 
+
+64. ( SV113  0x0019 )
+      0x00D6~0x00D7
+      
+      ReadDWORD
+
+ BIT                                                                                                      
+0~31            INT32      -2147483648~2147483647            0.01 /
+
+
+
+                                                                                                 CRC 
+
+            01    03           00              D6                 00          02          25                    F3
+                                                                                                            CRC 
+
+         
+
+      01        03               04                00        00        00                    00        FA       33
+
+65. ( SV113  0x009A )
+    0x00D8~0x00D9
+    
+    ReadDWORD/WriteDWORD 
+
+BIT                                                                                
+
+0~31                   INT32 -999999~999999                       30000 0.01 /
+
+ 30000
+
+                                                                                                 CRC 
+                                    00         D8                  00          02
+            01    03                                                                         44             30
+                                                                        
+                                    04         75                  30          00                           CRC 
+
+           01   03                                                                           00        E0       30
+
+ 50000 500 /
+
+                                                                                                            CRC 
+                                                                              50         00             00  C3 00
+
+  01 10                00    D8      00 02         04        C3
+
+                                                       CRC 
+                    
+
+   01 10               00    D8      00 02         C1        F3
+
+                                                       31                                                :V126
+
+                                                                                                 2025  03  14
+                                                                                         485 
+
+66. 
+
+
+
+ ()
+
+0x00C8
+
+, 0x009A 
+
+WriteWORD,
+
+  BIT                                                                       
+
+0~15  UINT16 01.256.257                                     0  1   256  257 
+
+
+
+                                                                                                CRC 
+                01    06            00         C8                       01           01
+ /                                                                                       C8           64
+
+ ()
+
+0x00CA
+
+
+
+WriteWORD,
+
+         BIT                                                                                  
+                                         0~1                                       0  CW1  CCW
+         15                        BIT  0~511                     50 0 0011 0010
+                                         0~1                        0 1 ,
+         14~6                      BIT
+                                           0                                                
+         5                         BIT   0~1                                       0 1 
+
+         4~1                       BIT
+
+         0                         BIT
+
+ 50 / CW  0000 1100 1000 0001 16 0x0C81
+
+                                                                                                CRC 
+                                    00         CA                       0C           81
+ /             01   06                                                                   6C           94
+
+ ()
+
+0x00CC~0x00CD
+
+, 0x009A 
+
+WriteDWORD,
+
+BIT                                                                           
+
+0~31                INT32  -2147483648~2147483647   msSV113 SV113 
+                                                   
+
+ 6400ms-6400ms.
+
+                                                                                                    CRC 
+                                                                        00           FF         FF  C8 AE
+
+  01 10             00       CC  00 02             04        E7
+
+                                                       CRC 
+                        
+
+        01 10       00       CC  00 02             81        F7
+
+ ()
+
+0x00CE~0x00CF
+
+(,.)
+
+WriteDWORD,
+
+BIT                                                                           
+
+0~31  INT32 -2147483648~2147483647 :.
+
+ 10000-10000
+
+                                                                                                    CRC 
+                                                                        F0           FF         FF  45 50
+
+  01 10             00       CE  00 02             04        D8
+
+                                                       CRC 
+                        
+
+        01 10       00       CE  00 02             20        37
+
+                                                       32                                         :V126
+
+                                                                                         2025  03  14
+                                                                  485 
+
+ ()
+
+0x00DE~0x00DF
+
+(,,.)
+
+WriteDWORD,
+
+BIT                                                    
+
+0~31  INT32 -2147483648~2147483647 :.
+
+ 5000 5000
+
+                                                                             CRC 
+                                                   88         00         00  FB D1
+
+  01 10        00  DE  00 02  04        13
+
+                                  CRC 
+                   
+
+      01 10    00  DE  00 02  21        F2
+
+ ()
+
+0x00D0~0x00D1
+
+
+
+WriteDWORD,
+
+BIT                                                    
+
+0~31  INT32        -2147483648~2147483647  
+                                                           .
+
+ 10000
+
+                                                                             CRC 
+                                                   10         00         00  F5 82
+
+  01 10        00  D0  00 02  04        27
+
+                                  CRC 
+                   
+
+      01 10    00  D0  00 02  40        31
+
+ ()
+
+0x00E8~0x00E9
+, ,.
+
+WriteDWORD,
+
+BIT                                                    
+
+0~31  INT32        -2147483648~2147483647  
+                                                           .
+
+-8000
+
+                                                                             CRC 
+                                                   C0         FF         FF  CA 0D
+
+  01 10        00  E8  00 02  04        E0
+
+                                  CRC 
+                   
+
+      01 10    00  E8  00 02  C1        FC
+
+                                  33                                :V126
+
+                                                                  2025  03  14
+                                                                                     485 
+
+67. 
+0x00D2~0x00D3
+
+WriteDWORD,
+
+BIT                                                                       
+
+0~31                    INT32   -2147483648~2147483647 
+                                                                          .
+
+ 1000 1000
+
+                                                                                             CRC 
+                            
+
+  01 10                 00      D2  00 02     04         03  E8             00       00      FF 5A
+
+                                                   CRC 
+                            
+
+        01 10           00      D2  00 02     E1         F1
+
+68. //                                                                       
+0x00D4                                                                  1 
+                               /         BIT  0~1             0 ,  1 
+WriteWORD,
+                                         BIT  0~1
+                   BIT
+                  15~8
+                   7~0
+
+0x0100
+
+                                                                                             CRC 
+                                       00            D4             01           00
+           01           06                                                           C8            62
+
+
+
+69. 
+0x00DB
+
+WriteWORD,
+
+  BIT                                                                                      
+                                    0~1                , 0 ,0 
+0~15  UINT16
+
+ 300 
+
+                                                                                             CRC 
+                                       00            DB             00           01
+ /         01           06                                                           38            31
+
+ 0 +300-1 
+
+70. 
+0x00DC
+
+
+
+WriteWORD,
+
+  BIT                                                                   
+
+0~15                    UINT16      0~1             1  0 
+
+1 10  0.1 
+
+     2
+     3
+
+
+
+                                                                                             CRC 
+                                       00            DC             00           01
+ /         01           06                                                           89            F0
+
+                                                   34                                          :V126
+
+                                                                                     2025  03  14
+                                                                                                 485 
+
+ 1CRC 
+unsigned char *puchMsg ;
+unsigned short usDataLen ;
+unsigned short CRC16(unsigned char *puchMsg, unsigned short usDataLen)
+{
+
+        unsigned char uchCRCHi = 0xFF ;
+        unsigned char uchCRCLo = 0xFF ;
+        unsigned uIndex ;
+        while (usDataLen--)
+        {
+
+                 uIndex = uchCRCHi ^ *(puchMsg++) ;
+                 uchCRCHi = uchCRCLo ^ u8_CrcTabHi[uIndex] ;
+                 uchCRCLo = u8_CrcTabLo[uIndex] ;
+        }
+        return (uchCRCHi << 8 | uchCRCLo) ;
+}
+uint16_t crc_value = CRC16(usart_rxbuff[Tail_index], 6);
+static const unsigned char u8_CrcTabHi[] = {
+0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40
+};
+static const unsigned char u8_CrcTabLo[] = {
+0x00, 0xC0, 0xC1, 0x01, 0xC3, 0x03, 0x02, 0xC2, 0xC6, 0x06, 0x07, 0xC7, 0x05, 0xC5, 0xC4, 0x04,
+0xCC, 0x0C, 0x0D, 0xCD, 0x0F, 0xCF, 0xCE, 0x0E, 0x0A, 0xCA, 0xCB, 0x0B, 0xC9, 0x09, 0x08, 0xC8,
+0xD8, 0x18, 0x19, 0xD9, 0x1B, 0xDB, 0xDA, 0x1A, 0x1E, 0xDE, 0xDF, 0x1F, 0xDD, 0x1D, 0x1C, 0xDC,
+0x14, 0xD4, 0xD5, 0x15, 0xD7, 0x17, 0x16, 0xD6, 0xD2, 0x12, 0x13, 0xD3, 0x11, 0xD1, 0xD0, 0x10,
+0xF0, 0x30, 0x31, 0xF1, 0x33, 0xF3, 0xF2, 0x32, 0x36, 0xF6, 0xF7, 0x37, 0xF5, 0x35, 0x34, 0xF4,
+0x3C, 0xFC, 0xFD, 0x3D, 0xFF, 0x3F, 0x3E, 0xFE, 0xFA, 0x3A, 0x3B, 0xFB, 0x39, 0xF9, 0xF8, 0x38,
+0x28, 0xE8, 0xE9, 0x29, 0xEB, 0x2B, 0x2A, 0xEA, 0xEE, 0x2E, 0x2F, 0xEF, 0x2D, 0xED, 0xEC, 0x2C,
+0xE4, 0x24, 0x25, 0xE5, 0x27, 0xE7, 0xE6, 0x26, 0x22, 0xE2, 0xE3, 0x23, 0xE1, 0x21, 0x20, 0xE0,
+0xA0, 0x60, 0x61, 0xA1, 0x63, 0xA3, 0xA2, 0x62, 0x66, 0xA6, 0xA7, 0x67, 0xA5, 0x65, 0x64, 0xA4,
+0x6C, 0xAC, 0xAD, 0x6D, 0xAF, 0x6F, 0x6E, 0xAE, 0xAA, 0x6A, 0x6B, 0xAB, 0x69, 0xA9, 0xA8, 0x68,
+0x78, 0xB8, 0xB9, 0x79, 0xBB, 0x7B, 0x7A, 0xBA, 0xBE, 0x7E, 0x7F, 0xBF, 0x7D, 0xBD, 0xBC, 0x7C,
+0xB4, 0x74, 0x75, 0xB5, 0x77, 0xB7, 0xB6, 0x76, 0x72, 0xB2, 0xB3, 0x73, 0xB1, 0x71, 0x70, 0xB0,
+0x50, 0x90, 0x91, 0x51, 0x93, 0x53, 0x52, 0x92, 0x96, 0x56, 0x57, 0x97, 0x55, 0x95, 0x94, 0x54,
+0x9C, 0x5C, 0x5D, 0x9D, 0x5F, 0x9F, 0x9E, 0x5E, 0x5A, 0x9A, 0x9B, 0x5B, 0x99, 0x59, 0x58, 0x98,
+0x88, 0x48, 0x49, 0x89, 0x4B, 0x8B, 0x8A, 0x4A, 0x4E, 0x8E, 0x8F, 0x4F, 0x8D, 0x4D, 0x4C, 0x8C,
+0x44, 0x84, 0x85, 0x45, 0x87, 0x47, 0x46, 0x86, 0x82, 0x42, 0x43, 0x83, 0x41, 0x81, 0x80, 0x40
+};
+
+35                                                                                                 :V126
+
+                                                                                                 2025  03  14
+                                                     485 
+
+ 2
+
+101 06 00 0D 00 64 19 E2  1A
+201 10 00 24 00 02 04 0F A0 00 00 F3 72  4000
+301 10 00 D8 00 02 04 27 10 00 00 F4 24  100rpm
+401 10 00 D0 00 02 04 27 10 00 00 F5 82  10000
+
+                                                 36    :V126
+
+                                                     2025  03  14
+
