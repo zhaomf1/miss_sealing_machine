@@ -151,6 +151,20 @@ static uint32_t g_eeprom_frequency;  // 总封膜次数 (0x18)
  *              内部辅助
  * =================================================================== */
 
+static const char *eeprom_param_name(uint16_t reg_addr)
+{
+    switch (reg_addr) {
+        case 0x0070: return "zero_pos";
+        case 0x0072: return "suck_seal_pos";
+        case 0x0074: return "pave_pos";
+        case 0x0076: return "get_place_pos";
+        case 0x0078: return "temperature_setpoint";
+        case 0x0079: return "press_time";
+        case 0x0080: return "seal_count";
+        default:     return "unknown";
+    }
+}
+
 static void action_set_result(uint8_t reg_addr, uint8_t result)
 {
     g_action_status = ((uint16_t)reg_addr << 8) | result;
@@ -922,12 +936,18 @@ static void cmd_start_workflow(void)
 
     /* 封膜成功，总次数 +1 并保存到 EEPROM */
     new_frequency = g_eeprom_frequency + 1U;
+    printf("[PARAM_SAVE] begin reg=0x0080 name=%s value=%lu\r\n",
+           eeprom_param_name(0x0080), (unsigned long)new_frequency);
     if (eeprom_write_u32(EEPROM_FREQUENCY, new_frequency) != HAL_OK) {
+        printf("[PARAM_SAVE] FAIL reg=0x0080 name=%s value=%lu\r\n",
+               eeprom_param_name(0x0080), (unsigned long)new_frequency);
         printf("[WORKFLOW] Save seal count FAIL\r\n");
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         action_set_result(0x10, ACT_RESULT_FAILURE);
         return;
     }
+    printf("[PARAM_SAVE] OK reg=0x0080 name=%s value=%lu\r\n",
+           eeprom_param_name(0x0080), (unsigned long)new_frequency);
     g_eeprom_frequency = new_frequency;
     shadow[0x0080] = (uint16_t)((new_frequency >> 16) & 0xFFFF);
     shadow[0x0081] = (uint16_t)(new_frequency & 0xFFFF);
@@ -1253,20 +1273,32 @@ int modbus_reg_write_execute(uint16_t addr, uint16_t value)
         /* ---- EEPROM uint16: 写 EEPROM + 同步缓存 ---- */
         case 0x0078:
             if (value > 2500U) return WRITE_ERR_ILLEGAL;
+            printf("[PARAM_SAVE] begin reg=0x%04X name=%s value=%u\r\n",
+                   addr, eeprom_param_name(addr), value);
             if (eeprom_write_u32(EEPROM_TEMP_CTRL, (uint32_t)value) != HAL_OK) {
+                printf("[PARAM_SAVE] FAIL reg=0x%04X name=%s value=%u\r\n",
+                       addr, eeprom_param_name(addr), value);
                 return WRITE_ERR_DEVICE;
             }
             shadow[addr] = value;
             g_eeprom_temp_ctrl = value;
             PID_SetTemperature(g_eeprom_temp_ctrl / 10.0f);
+            printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%u setpoint=%.1fC\r\n",
+                   addr, eeprom_param_name(addr), value, g_eeprom_temp_ctrl / 10.0f);
             break;
         case 0x0079:
             if (value > 60U) return WRITE_ERR_ILLEGAL;
+            printf("[PARAM_SAVE] begin reg=0x%04X name=%s value=%u\r\n",
+                   addr, eeprom_param_name(addr), value);
             if (eeprom_write_u32(EEPROM_PRESS_TIME, (uint32_t)value) != HAL_OK) {
+                printf("[PARAM_SAVE] FAIL reg=0x%04X name=%s value=%u\r\n",
+                       addr, eeprom_param_name(addr), value);
                 return WRITE_ERR_DEVICE;
             }
             shadow[addr] = value;
             g_eeprom_press_time = value;
+            printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%us\r\n",
+                   addr, eeprom_param_name(addr), value);
             break;
 
         default: return WRITE_ERR_ILLEGAL;
@@ -1295,32 +1327,60 @@ int modbus_reg_write32_execute(uint16_t start_addr, uint32_t value)
             break;
         }
         case 0x0070:
-            if (eeprom_write_u32(EEPROM_ADDR_ZERO, value) != HAL_OK)
+            printf("[PARAM_SAVE] begin reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
+            if (eeprom_write_u32(EEPROM_ADDR_ZERO, value) != HAL_OK) {
+                printf("[PARAM_SAVE] FAIL reg=0x%04X name=%s value=%lu\r\n",
+                       start_addr, eeprom_param_name(start_addr), (unsigned long)value);
                 return WRITE_ERR_DEVICE;
+            }
             g_eeprom_zero = value;
             shadow[0x0070] = (uint16_t)((value >> 16) & 0xFFFF);
             shadow[0x0071] = (uint16_t)(value & 0xFFFF);
+            printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
             break;
         case 0x0072:
-            if (eeprom_write_u32(EEPROM_SUCK_SEAL, value) != HAL_OK)
+            printf("[PARAM_SAVE] begin reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
+            if (eeprom_write_u32(EEPROM_SUCK_SEAL, value) != HAL_OK) {
+                printf("[PARAM_SAVE] FAIL reg=0x%04X name=%s value=%lu\r\n",
+                       start_addr, eeprom_param_name(start_addr), (unsigned long)value);
                 return WRITE_ERR_DEVICE;
+            }
             g_eeprom_suck_seal = value;
             shadow[0x0072] = (uint16_t)((value >> 16) & 0xFFFF);
             shadow[0x0073] = (uint16_t)(value & 0xFFFF);
+            printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
             break;
         case 0x0074:
-            if (eeprom_write_u32(EEPROM_PAVE, value) != HAL_OK)
+            printf("[PARAM_SAVE] begin reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
+            if (eeprom_write_u32(EEPROM_PAVE, value) != HAL_OK) {
+                printf("[PARAM_SAVE] FAIL reg=0x%04X name=%s value=%lu\r\n",
+                       start_addr, eeprom_param_name(start_addr), (unsigned long)value);
                 return WRITE_ERR_DEVICE;
+            }
             g_eeprom_pave = value;
             shadow[0x0074] = (uint16_t)((value >> 16) & 0xFFFF);
             shadow[0x0075] = (uint16_t)(value & 0xFFFF);
+            printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
             break;
         case 0x0076:
-            if (eeprom_write_u32(EEPROM_GET_PLACE, value) != HAL_OK)
+            printf("[PARAM_SAVE] begin reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
+            if (eeprom_write_u32(EEPROM_GET_PLACE, value) != HAL_OK) {
+                printf("[PARAM_SAVE] FAIL reg=0x%04X name=%s value=%lu\r\n",
+                       start_addr, eeprom_param_name(start_addr), (unsigned long)value);
                 return WRITE_ERR_DEVICE;
+            }
             g_eeprom_get_place = value;
             shadow[0x0076] = (uint16_t)((value >> 16) & 0xFFFF);
             shadow[0x0077] = (uint16_t)(value & 0xFFFF);
+            printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
             break;
         default: return -1;
     }

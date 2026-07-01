@@ -56,15 +56,32 @@ HAL_StatusTypeDef eeprom_read_u32(uint16_t addr, uint32_t *data)
 HAL_StatusTypeDef eeprom_write_u32(uint16_t addr, uint32_t data)
 {
     uint8_t buf[4];
+    HAL_StatusTypeDef ret;
 
-    if (addr + 4 > 255) return HAL_ERROR;
+    if (addr + 4 > 255) {
+        printf("[EEPROM_SAVE] invalid addr=0x%02X value=%lu\r\n",
+               addr, (unsigned long)data);
+        return HAL_ERROR;
+    }
 
     buf[0] = (uint8_t)(data >> 0);
     buf[1] = (uint8_t)(data >> 8);
     buf[2] = (uint8_t)(data >> 16);
     buf[3] = (uint8_t)(data >> 24);
 
-    return at24c02_write_page((uint8_t)addr, buf, 4);
+    printf("[EEPROM_SAVE] write addr=0x%02X value=%lu (0x%08lX)\r\n",
+           addr, (unsigned long)data, (unsigned long)data);
+
+    ret = at24c02_write_page((uint8_t)addr, buf, 4);
+    if (ret == HAL_OK) {
+        printf("[EEPROM_SAVE] OK addr=0x%02X value=%lu\r\n",
+               addr, (unsigned long)data);
+    } else {
+        printf("[EEPROM_SAVE] FAIL addr=0x%02X value=%lu ret=%d\r\n",
+               addr, (unsigned long)data, ret);
+    }
+
+    return ret;
 }
 
 
