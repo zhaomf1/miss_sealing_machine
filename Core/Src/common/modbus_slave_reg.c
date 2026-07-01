@@ -294,8 +294,7 @@ static void cmd_suction_action(uint16_t value)
     /* Step 2: 吸膜电缸下落到吸膜点 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        cylinder_move_to(CYLINDER_ID_SUCK, SUCTION_CYL_SUCK_POS);
-        ret = cylinder_wait_arrived(CYLINDER_ID_SUCK, TIMEOUT_CYL_MOVE);
+        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, SUCTION_CYL_SUCK_POS, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0061] Step2 attempt %d/%d FAIL (ret=%d)\r\n",
@@ -336,8 +335,7 @@ static void cmd_suction_action(uint16_t value)
     /* Step 4: 吸膜电缸移动到0 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        cylinder_move_to(CYLINDER_ID_SUCK, 0);
-        ret = cylinder_wait_arrived(CYLINDER_ID_SUCK, TIMEOUT_CYL_MOVE);
+        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0061] Step4 attempt %d/%d FAIL (ret=%d)\r\n",
@@ -390,8 +388,7 @@ static void cmd_lay_film_action(uint16_t value)
     /* Step 2: 吸膜电缸下落到铺膜点 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        cylinder_move_to(CYLINDER_ID_SUCK, SUCTION_CYL_PAVE_POS);
-        ret = cylinder_wait_arrived(CYLINDER_ID_SUCK, TIMEOUT_CYL_MOVE);
+        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, SUCTION_CYL_PAVE_POS, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0062] Step2 attempt %d/%d FAIL (ret=%d)\r\n",
@@ -439,8 +436,7 @@ static void cmd_lay_film_action(uint16_t value)
     /* Step 4: 吸膜电缸移动到0 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        cylinder_move_to(CYLINDER_ID_SUCK, 0);
-        ret = cylinder_wait_arrived(CYLINDER_ID_SUCK, TIMEOUT_CYL_MOVE);
+        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0062] Step4 attempt %d/%d FAIL (ret=%d)\r\n",
@@ -493,8 +489,7 @@ static void cmd_seal_action(uint16_t value)
     /* Step 2: 封膜电缸下落 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        cylinder_move_to(CYLINDER_ID_SEAL, SEAL_CYL_DROP_DISTANCE);
-        ret = cylinder_wait_arrived(CYLINDER_ID_SEAL, TIMEOUT_CYL_MOVE);
+        ret = cylinder_move_to_wait(CYLINDER_ID_SEAL, SEAL_CYL_DROP_DISTANCE, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0063] Step2 attempt %d/%d FAIL (ret=%d)\r\n",
@@ -518,8 +513,7 @@ static void cmd_seal_action(uint16_t value)
     /* Step 4: 封膜电缸移动到0 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        cylinder_move_to(CYLINDER_ID_SEAL, 0);
-        ret = cylinder_wait_arrived(CYLINDER_ID_SEAL, TIMEOUT_CYL_MOVE);
+        ret = cylinder_move_to_wait(CYLINDER_ID_SEAL, 0, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0063] Step4 attempt %d/%d FAIL (ret=%d)\r\n",
@@ -765,8 +759,7 @@ static void cmd_suck_cyl_move(uint16_t position)
     uint8_t r = ACT_RESULT_FAILURE;
     int ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        cylinder_move_to(CYLINDER_ID_SUCK, position);
-        ret = cylinder_wait_arrived(CYLINDER_ID_SUCK, TIMEOUT_CYL_MOVE);
+        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, position, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0040] Attempt %d/%d FAIL (ret=%d)\r\n",
@@ -791,8 +784,7 @@ static void cmd_seal_cyl_move(uint16_t position)
     uint8_t r = ACT_RESULT_FAILURE;
     int ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        cylinder_move_to(CYLINDER_ID_SEAL, position);
-        ret = cylinder_wait_arrived(CYLINDER_ID_SEAL, TIMEOUT_CYL_MOVE);
+        ret = cylinder_move_to_wait(CYLINDER_ID_SEAL, position, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0041] Attempt %d/%d FAIL (ret=%d)\r\n",

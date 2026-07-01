@@ -303,7 +303,7 @@ int fujun_motor_wait_stop(uint32_t timeout_ms)
 }
 
 /**
- * @brief 阻塞等待电机到达目标位置
+ * @brief 移动电机到目标位置并等待到达
  * @return 0=已到达, -1=超时, -2=报警, -3=通讯失败
  *
  * 到位误差容限 FUJUN_POSITION_TOLERANCE，最大等待时长 FUJUN_WAIT_TIMEOUT_MS
@@ -315,29 +315,39 @@ int fujun_motor_wait_position(int32_t target)
 
     /*
      * 到位判断策略：
-     *   1. 读取当前位置，发送绝对移动指令
-     *   2. 按 20000 pulses/s 换算等待时间 + 2s 余量，上限 FUJUN_WAIT_TIMEOUT_MS
-     *   3. 等待结束后读取位置，误差 <= FUJUN_POSITION_TOLERANCE 即判定到位
-     *   4. 不到位则重发指令重试，最多 3 次重试
+     *   1. 读取当前位置，计算剩余误差 delta = target - current
+     *   2. 若误差在 FUJUN_POSITION_TOLERANCE 内，直接判定到位
+     *   3. 若误差超限，使用 0x00CE 相对运行剩余脉冲数进行补偿
+     *   4. 等待结束后再次读取位置判断，不到位则继续按剩余误差相对补偿
      */
     for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         if (modbus_reg_is_stop_requested()) {
             return ACTION_WAIT_CANCELLED;
         }
-        /* 读取当前位置，用于估算移动距离 */
+
+        /* 读取当前位置，并按剩余误差决定相对补偿量 */
         if (fujun_motor_read_position(&cur_pos) != MODBUS_OK) {
             osDelay(200);
             continue;
         }
 
-        /* 发送绝对位置移动指令 */
-        if (fujun_motor_move_to_absolute(target) != MODBUS_OK) {
+        int32_t delta = target - cur_pos;
+        int32_t diff = abs(delta);
+        if (diff <= FUJUN_POSITION_TOLERANCE) {
+            return 0;
+        }
+
+        /* 使用相对运行补偿剩余误差，避免绝对位置小偏差时驱动器不动作 */
+        if (fujun_motor_run_pulses(delta) != MODBUS_OK) {
             osDelay(200);
             continue;
         }
 
+        printf("[FUJUN] Correction move: target=%ld current=%ld delta=%ld (attempt %d/%d)\r\n",
+               (long)target, (long)cur_pos, (long)delta, attempt + 1, MAX_ATTEMPTS);
+
         /* 按距离换算等待时间：20000 pulses/s + 2s 余量 */
-        uint32_t distance = (uint32_t)abs(cur_pos - target);
+        uint32_t distance = (uint32_t)diff;
         uint32_t wait_ms = distance / 20 + 2000;
         if (wait_ms > FUJUN_WAIT_TIMEOUT_MS) {
             wait_ms = FUJUN_WAIT_TIMEOUT_MS;
@@ -365,12 +375,12 @@ int fujun_motor_wait_position(int32_t target)
 
         /* 读取最终位置并判断 */
         if (fujun_motor_read_position(&cur_pos) == MODBUS_OK) {
-            int32_t diff = abs(cur_pos - target);
-            if (diff <= FUJUN_POSITION_TOLERANCE) {
+            int32_t final_diff = abs(cur_pos - target);
+            if (final_diff <= FUJUN_POSITION_TOLERANCE) {
                 return 0;
             }
             printf("[FUJUN] Position mismatch: target=%ld actual=%ld diff=%ld (attempt %d/%d)\r\n",
-                   (long)target, (long)cur_pos, (long)diff, attempt + 1, MAX_ATTEMPTS);
+                   (long)target, (long)cur_pos, (long)final_diff, attempt + 1, MAX_ATTEMPTS);
         }
     }
 

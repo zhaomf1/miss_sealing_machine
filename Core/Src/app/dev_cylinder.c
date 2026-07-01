@@ -281,6 +281,14 @@ int cylinder_set_io_mode(CylinderId_t id, uint16_t enable)
  * =================================================================== */
 
 #define CYL_POLL_INTERVAL_MS   100   // 轮询间隔
+#define CYL_CMD_SETTLE_MS      150   // 给电缸控制器刷新运动状态的时间，避免读到上一轮到位状态
+#define CYL_POS_TOLERANCE      20    // 位置到位容差，单位0.01mm，20=0.20mm
+#define CYL_ARRIVED_CONFIRM    2     // 状态到位+位置到位连续确认次数
+
+static uint16_t cylinder_abs_diff_u16(uint16_t a, uint16_t b)
+{
+    return (a >= b) ? (uint16_t)(a - b) : (uint16_t)(b - a);
+}
 
 /* ---- 单次查询 ---- */
 
@@ -356,6 +364,92 @@ int cylinder_wait_arrived(CylinderId_t id, uint32_t timeout_ms)
 
     printf("[CYL] id=%d wait arrived timeout (%lums)\r\n", (int)id, timeout_ms);
     return -1;
+}
+
+/**
+ * @brief 等待电缸状态到位且当前位置到达目标位置
+ * @return 0=目标位置到位, -1=超时, -2=堵转, -3=通讯失败, ACTION_WAIT_CANCELLED=被停止命令取消
+ */
+int cylinder_wait_position(CylinderId_t id, uint16_t target_001mm, uint32_t timeout_ms)
+{
+    CylinderMotionState_t state = CYLINDER_MOTION_RUNNING;
+    uint16_t position = 0xFFFF;
+    uint16_t diff = 0xFFFF;
+    uint32_t elapsed = 0;
+    uint8_t confirm = 0;
+
+    while (elapsed < CYL_CMD_SETTLE_MS && elapsed < timeout_ms) {
+        if (modbus_reg_is_stop_requested()) {
+            return ACTION_WAIT_CANCELLED;
+        }
+        uint32_t settle_left = CYL_CMD_SETTLE_MS - elapsed;
+        uint32_t timeout_left = timeout_ms - elapsed;
+        uint32_t slice = (settle_left > 50U) ? 50U : settle_left;
+        if (slice > timeout_left) {
+            slice = timeout_left;
+        }
+        osDelay(slice);
+        elapsed += slice;
+    }
+
+    while (elapsed < timeout_ms) {
+        if (modbus_reg_is_stop_requested()) {
+            return ACTION_WAIT_CANCELLED;
+        }
+
+        int ret = cylinder_read_motion_state(id, &state);
+        if (ret != MODBUS_OK) {
+            printf("[CYL] id=%d read motion state FAIL ret=%d\r\n", (int)id, ret);
+            return -3;
+        }
+
+        ret = cylinder_read_position(id, &position);
+        if (ret != MODBUS_OK) {
+            printf("[CYL] id=%d read position FAIL ret=%d\r\n", (int)id, ret);
+            return -3;
+        }
+
+        diff = cylinder_abs_diff_u16(position, target_001mm);
+
+        if (state == CYLINDER_MOTION_STALLED) {
+            printf("[CYL] id=%d stalled! target=%u pos=%u diff=%u\r\n",
+                   (int)id, target_001mm, position, diff);
+            return -2;
+        }
+
+        if (state == CYLINDER_MOTION_ARRIVED && diff <= CYL_POS_TOLERANCE) {
+            confirm++;
+            if (confirm >= CYL_ARRIVED_CONFIRM) {
+                printf("[CYL] id=%d arrived target=%u pos=%u diff=%u\r\n",
+                       (int)id, target_001mm, position, diff);
+                return 0;
+            }
+        } else {
+            confirm = 0;
+        }
+
+        osDelay(CYL_POLL_INTERVAL_MS);
+        elapsed += CYL_POLL_INTERVAL_MS;
+    }
+
+    printf("[CYL] id=%d wait target timeout target=%u pos=%u diff=%u state=%d (%lums)\r\n",
+           (int)id, target_001mm, position, diff, (int)state, timeout_ms);
+    return -1;
+}
+
+/**
+ * @brief 下发目标位置并等待实际到位
+ */
+int cylinder_move_to_wait(CylinderId_t id, uint16_t position_001mm, uint32_t timeout_ms)
+{
+    int ret = cylinder_move_to(id, position_001mm);
+    if (ret != MODBUS_OK) {
+        printf("[CYL] id=%d move cmd FAIL target=%u ret=%d\r\n",
+               (int)id, position_001mm, ret);
+        return -3;
+    }
+
+    return cylinder_wait_position(id, position_001mm, timeout_ms);
 }
 
 /**

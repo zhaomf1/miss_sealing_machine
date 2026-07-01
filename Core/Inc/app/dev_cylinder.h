@@ -106,4 +106,22 @@ int cylinder_wait_arrived(CylinderId_t id, uint32_t timeout_ms);
  */
 int cylinder_wait_home(CylinderId_t id, uint32_t timeout_ms);
 
+/**
+ * @brief 等待电缸运动状态到位，并确认实际位置已到目标位置
+ * @param id 电缸 ID
+ * @param target_001mm 目标位置，单位 0.01mm
+ * @param timeout_ms 超时时间，单位 ms
+ * @return 0=目标位置到位, -1=超时, -2=堵转, -3=通信失败
+ */
+int cylinder_wait_position(CylinderId_t id, uint16_t target_001mm, uint32_t timeout_ms);
+
+/**
+ * @brief 下发目标位置命令，并等待电缸实际到达目标位置
+ * @param id 电缸 ID
+ * @param position_001mm 目标位置，单位 0.01mm
+ * @param timeout_ms 超时时间，单位 ms
+ * @return 0=目标位置到位, -1=超时, -2=堵转, -3=通信失败
+ */
+int cylinder_move_to_wait(CylinderId_t id, uint16_t position_001mm, uint32_t timeout_ms);
+
 #endif
