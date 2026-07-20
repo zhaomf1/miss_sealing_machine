@@ -128,13 +128,14 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 /* ---- 调试动作超时 (ms) ---- */
 #define TIMEOUT_CYL_MOVE      10000
 #define TIMEOUT_SUCTION_CUP    5000
+#define SUCTION_CYL_DOWN_WAIT_MS       1500
 
 /* ---- 复合动作重试次数 ---- */
 #define COMPOUND_ACTION_MAX_RETRIES  3
 
 /* ---- 复合动作电缸下落距离 (0.01mm) ---- */
 #define SUCTION_CYL_SUCK_POS   5200  // 吸膜点：吸膜操作时电缸下落距离 
-#define SUCTION_CYL_PAVE_POS   1400  // 铺膜点：铺膜操作时电缸下落距离 
+#define SUCTION_CYL_PAVE_POS   1500  // 铺膜点：铺膜操作时电缸下落距离 
 #define SEAL_CYL_DROP_DISTANCE  5000  // 封膜电缸下落距离 
 
 /* ---- EEPROM 参数全局缓存（上电初始化一次，避免频繁操作 EEPROM）---- */
@@ -220,6 +221,59 @@ static int delay_interruptible(uint32_t delay_ms)
     return 0;
 }
 
+/* 吸膜下压以电缸运动状态判定，不比较实际位置。 */
+static int suck_cyl_move_down_wait_stop(uint16_t position)
+{
+    CylinderMotionState_t state;
+    int ret = cylinder_move_to(CYLINDER_ID_SUCK, position);
+
+    if (ret != 0) {
+        printf("[CMD_0x0061] Step2 Suck cyl move cmd FAIL target=%u ret=%d\r\n",
+               position, ret);
+        return -3;
+    }
+
+    if (delay_interruptible(SUCTION_CYL_DOWN_WAIT_MS) != 0) {
+        return ACTION_WAIT_CANCELLED;
+    }
+
+    ret = cylinder_read_motion_state(CYLINDER_ID_SUCK, &state);
+    if (ret != 0) {
+        printf("[CMD_0x0061] Step2 Suck cyl state read FAIL ret=%d\r\n", ret);
+        return -3;
+    }
+
+    if (state == CYLINDER_MOTION_ARRIVED || state == CYLINDER_MOTION_STALLED) {
+        printf("[CMD_0x0061] Step2 Suck cyl down complete target=%u state=%d (%ums)\r\n",
+               position, (int)state, SUCTION_CYL_DOWN_WAIT_MS);
+        return 0;
+    }
+
+    if (state == CYLINDER_MOTION_RUNNING) {
+        printf("[CMD_0x0061] Step2 Suck cyl still running target=%u (%ums)\r\n",
+               position, SUCTION_CYL_DOWN_WAIT_MS);
+    } else {
+        printf("[CMD_0x0061] Step2 Suck cyl invalid state=%d\r\n", (int)state);
+    }
+    return -1;
+}
+
+static int suck_cyl_return_to_zero(void)
+{
+    int ret = -1;
+
+    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
+        if (ret == 0 || ret == ACTION_WAIT_CANCELLED) {
+            break;
+        }
+        printf("[CMD_0x0061] Cleanup return attempt %d/%d FAIL (ret=%d)\r\n",
+               attempt + 1, COMPOUND_ACTION_MAX_RETRIES, ret);
+    }
+
+    return ret;
+}
+
 
 /* ===================================================================
  *          复合动作实现 (0x0060~0x0064)
@@ -270,6 +324,7 @@ static void cmd_suction_action(uint16_t value)
 {
     (void)value;
     uint8_t result = ACT_RESULT_FAILURE;
+    uint8_t suck_cyl_commanded = 0;
     int ret;
 
     printf("[CMD_0x0061] Suction action: fujun_target=%lu\r\n",
@@ -294,7 +349,8 @@ static void cmd_suction_action(uint16_t value)
     /* Step 2: 吸膜电缸下落到吸膜点 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, SUCTION_CYL_SUCK_POS, TIMEOUT_CYL_MOVE);
+        suck_cyl_commanded = 1;
+        ret = suck_cyl_move_down_wait_stop(SUCTION_CYL_SUCK_POS);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0061] Step2 attempt %d/%d FAIL (ret=%d)\r\n",
@@ -333,24 +389,30 @@ static void cmd_suction_action(uint16_t value)
     if (delay_interruptible(1000) != 0) goto done;
 
     /* Step 4: 吸膜电缸移动到0 */
-    ret = -1;
-    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
-        if (ret == 0) break;
-        if (ret == ACTION_WAIT_CANCELLED) break;
-        printf("[CMD_0x0061] Step4 attempt %d/%d FAIL (ret=%d)\r\n",
-               attempt + 1, COMPOUND_ACTION_MAX_RETRIES, ret);
-    }
+    ret = suck_cyl_return_to_zero();
     if (ret != 0) {
         g_fault_status |= FAULT_BIT_SUCK_CYL;
         printf("[CMD_0x0061] Step4 Suck cyl move to 0 FAIL after %d retries\r\n", COMPOUND_ACTION_MAX_RETRIES);
         goto done;
     }
+    suck_cyl_commanded = 0;
     g_fault_status &= ~FAULT_BIT_SUCK_CYL;
 
     result = ACT_RESULT_SUCCESS;
 
 done:
+    if (result != ACT_RESULT_SUCCESS && suck_cyl_commanded) {
+        printf("[CMD_0x0061] Cleanup: release suction cup and return suction cylinder to 0\r\n");
+        if (suction_cup_release() != 0 ||
+            suction_cup_wait_release(TIMEOUT_SUCTION_CUP) != 0) {
+            g_fault_status |= FAULT_BIT_SUCTION_CUP;
+            printf("[CMD_0x0061] Cleanup: suction cup release FAIL\r\n");
+        }
+        if (suck_cyl_return_to_zero() != 0) {
+            g_fault_status |= FAULT_BIT_SUCK_CYL;
+            printf("[CMD_0x0061] Cleanup: suction cylinder return to 0 FAIL\r\n");
+        }
+    }
     action_set_result(0x61, result);
     printf("[CMD_0x0061] Suction action %s\r\n",
            (result == ACT_RESULT_SUCCESS) ? "OK" : "FAIL");
@@ -576,6 +638,7 @@ static void cmd_stop_workflow(void)
 {
     uint8_t result = ACT_RESULT_SUCCESS;
     uint16_t prev_state = g_system_state;
+    int ret;
 
     /* 停止恢复动作自身不应再被取消 */
     g_stop_requested = 0;
@@ -596,8 +659,12 @@ static void cmd_stop_workflow(void)
 
     /* Step 2: 封膜电缸归零 */
     printf("[STOP] Step2: Seal cylinder home\r\n");
-    cylinder_home(CYLINDER_ID_SEAL);
-    if (cylinder_wait_home(CYLINDER_ID_SEAL, 30000) != 0) {
+    ret = cylinder_home(CYLINDER_ID_SEAL);
+    if (ret != 0) {
+        printf("[STOP] Step2: Seal cylinder home cmd FAIL (ret=%d)\r\n", ret);
+        g_fault_status |= FAULT_BIT_SEAL_CYL;
+        result = ACT_RESULT_FAILURE;
+    } else if (cylinder_wait_home(CYLINDER_ID_SEAL, 30000) != 0) {
         printf("[STOP] Step2: Seal cylinder home FAIL\r\n");
         g_fault_status |= FAULT_BIT_SEAL_CYL;
         result = ACT_RESULT_FAILURE;
@@ -620,8 +687,12 @@ static void cmd_stop_workflow(void)
 
     /* Step 4: 吸膜电缸归零 */
     printf("[STOP] Step4: Suction cylinder home\r\n");
-    cylinder_home(CYLINDER_ID_SUCK);
-    if (cylinder_wait_home(CYLINDER_ID_SUCK, 30000) != 0) {
+    ret = cylinder_home(CYLINDER_ID_SUCK);
+    if (ret != 0) {
+        printf("[STOP] Step4: Suction cylinder home cmd FAIL (ret=%d)\r\n", ret);
+        g_fault_status |= FAULT_BIT_SUCK_CYL;
+        result = ACT_RESULT_FAILURE;
+    } else if (cylinder_wait_home(CYLINDER_ID_SUCK, 30000) != 0) {
         printf("[STOP] Step4: Suction cylinder home FAIL\r\n");
         g_fault_status |= FAULT_BIT_SUCK_CYL;
         result = ACT_RESULT_FAILURE;
@@ -632,7 +703,7 @@ static void cmd_stop_workflow(void)
 
     /* Step 5: 富俊电机归零 */
     printf("[STOP] Step5: Fujun motor home\r\n");
-    int ret = fujun_motor_wait_position((int32_t)g_eeprom_zero);
+    ret = fujun_motor_wait_position((int32_t)g_eeprom_zero);
     if (ret == 0) {
         g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
         printf("[STOP] Step5: Fujun motor home OK\r\n");

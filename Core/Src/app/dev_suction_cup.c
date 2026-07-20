@@ -26,13 +26,13 @@ int dev_suction_cup_init(void)
         ret = -1;
     }
     osDelay(10);
-    /*设置最小真空度15*/
-    if (suction_cup_set_min_vacuum(30) != 0) {
+    /*设置最小真空度*/
+    if (suction_cup_set_min_vacuum(15) != 0) {
         ret = -1;
     }
     osDelay(10);
-    /*设置最大真空度40*/
-    if (suction_cup_set_max_vacuum(50) != 0) {
+    /*设置最大真空度*/
+    if (suction_cup_set_max_vacuum(30) != 0) {
         ret = -1;
     }
     osDelay(10);
