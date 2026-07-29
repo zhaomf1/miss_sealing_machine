@@ -130,13 +130,15 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define TIMEOUT_SUCTION_CUP    5000
 #define SUCTION_CYL_DOWN_SETTLE_MS      150
 #define SUCTION_CYL_DOWN_POLL_MS        100
+#define SUCTION_CUP_HOLD_SETTLE_MS       300
+#define SUCTION_CUP_RELEASE_SETTLE_MS    300
 
 /* ---- 复合动作重试次数 ---- */
 #define COMPOUND_ACTION_MAX_RETRIES  3
 
 /* ---- 复合动作电缸下落距离 (0.01mm) ---- */
 #define SUCTION_CYL_SUCK_POS   5200  // 吸膜点：吸膜操作时电缸下落距离 
-#define SUCTION_CYL_PAVE_POS   1300  // 铺膜点：铺膜操作时电缸下落距离 
+#define SUCTION_CYL_PAVE_POS   1200  // 铺膜点：铺膜操作时电缸下落距离 
 #define SEAL_CYL_DROP_DISTANCE  5000  // 封膜电缸下落距离 
 
 /* ---- EEPROM 参数全局缓存（上电初始化一次，避免频繁操作 EEPROM）---- */
@@ -393,8 +395,8 @@ static void cmd_suction_action(uint16_t value)
     }
     g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
 
-    /* 吸盘吸取成功后等待 1s 确保吸稳 */
-    if (delay_interruptible(1000) != 0) goto done;
+    /* 吸盘吸取成功后短暂等待，确保吸稳。 */
+    if (delay_interruptible(SUCTION_CUP_HOLD_SETTLE_MS) != 0) goto done;
 
     /* Step 4: 吸膜电缸移动到0 */
     ret = suck_cyl_return_to_zero();
@@ -499,8 +501,8 @@ static void cmd_lay_film_action(uint16_t value)
     }
     g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
 
-    /* 释放成功后额外等待，确保膜材靠重力完全脱离吸盘 */
-    if (delay_interruptible(1000) != 0) goto done;
+    /* 释放成功后短暂等待，确保膜材脱离吸盘。 */
+    if (delay_interruptible(SUCTION_CUP_RELEASE_SETTLE_MS) != 0) goto done;
     printf("[CMD_0x0062] Step3 Suction cup release OK\r\n");
 
     /* Step 4: 吸膜电缸移动到0 */

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define FUJUN_RUN_SPEED_001RPM  100000
+#define FUJUN_RUN_SPEED_001RPM  50000
 
 /* ------------------------------------------------------------------ *
  *  富俊步进电机驱动 (基于 485/Modbus RTU, 手册 SV126.1)
@@ -213,6 +213,8 @@ int fujun_motor_read_position(int32_t *position)
  * =================================================================== */
 
 #define FUJUN_POLL_INTERVAL_MS     200   // 轮询间隔
+#define FUJUN_CMD_START_POLL_MS     20   // 等待驱动器进入运行状态的轮询间隔
+#define FUJUN_CMD_START_TIMEOUT_MS 500   // 下发命令到状态切换为运行中的最大时间
 #define FUJUN_POSITION_TOLERANCE   40    // 到位判定误差 (pulses)
 #define FUJUN_WAIT_TIMEOUT_MS    10000  // 等待到位最大时间 (ms)
 
@@ -354,22 +356,52 @@ int fujun_motor_wait_position(int32_t target)
         printf("[FUJUN] Correction move: target=%ld current=%ld delta=%ld (attempt %d/%d)\r\n",
                (long)target, (long)cur_pos, (long)delta, attempt + 1, MAX_ATTEMPTS);
 
-        /* 按距离换算等待时间：20000 pulses/s + 2s 余量 */
-        uint32_t distance = (uint32_t)diff;
-        uint32_t wait_ms = distance / 20 + 2000;
-        if (wait_ms > FUJUN_WAIT_TIMEOUT_MS) {
-            wait_ms = FUJUN_WAIT_TIMEOUT_MS;
-        }
+        /* Confirm this command has started before treating a stopped state as complete. */
+        uint32_t start_elapsed = 0;
+        uint8_t running_seen = 0;
+        while (start_elapsed < FUJUN_CMD_START_TIMEOUT_MS) {
+            uint16_t status = 0;
 
-        uint32_t waited_ms = 0;
-        while (waited_ms < wait_ms) {
-            uint32_t slice_ms = (wait_ms - waited_ms > FUJUN_POLL_INTERVAL_MS)
-                              ? FUJUN_POLL_INTERVAL_MS : (wait_ms - waited_ms);
             if (modbus_reg_is_stop_requested()) {
                 return ACTION_WAIT_CANCELLED;
             }
-            osDelay(slice_ms);
-            waited_ms += slice_ms;
+            if (fujun_motor_read_status(&status) != MODBUS_OK) {
+                return -3;
+            }
+            if (status & FUJUN_STATUS_ALARM) {
+                uint16_t alarm = 0;
+                if (fujun_motor_read_alarm(&alarm) == MODBUS_OK) {
+                    printf("[FUJUN] Alarm detected: 0x%04X, clearing...\r\n", alarm);
+                }
+                fujun_motor_clear_alarm();
+                return -2;
+            }
+            if (status & FUJUN_STATUS_RUNNING) {
+                running_seen = 1;
+                break;
+            }
+            if (fujun_motor_read_position(&cur_pos) == MODBUS_OK &&
+                abs(target - cur_pos) <= FUJUN_POSITION_TOLERANCE) {
+                return 0;
+            }
+            osDelay(FUJUN_CMD_START_POLL_MS);
+            start_elapsed += FUJUN_CMD_START_POLL_MS;
+        }
+        if (!running_seen) {
+            printf("[FUJUN] Run start timeout: target=%ld\r\n", (long)target);
+            return -1;
+        }
+
+        int wait_ret = fujun_motor_wait_stop(FUJUN_WAIT_TIMEOUT_MS);
+        if (wait_ret != 0) {
+            if (wait_ret == -2) {
+                uint16_t alarm = 0;
+                if (fujun_motor_read_alarm(&alarm) == MODBUS_OK) {
+                    printf("[FUJUN] Alarm detected: 0x%04X, clearing...\r\n", alarm);
+                }
+                fujun_motor_clear_alarm();
+            }
+            return wait_ret;
         }
 
         /* 检查当前报警 (bits[3:0]), 忽略历史报警 (bits[15:4]) */
