@@ -132,6 +132,8 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define SUCTION_CYL_DOWN_POLL_MS        100
 #define SUCTION_CUP_HOLD_SETTLE_MS       300
 #define SUCTION_CUP_RELEASE_SETTLE_MS    300
+#define WORKFLOW_STEP_SETTLE_MS          300
+#define SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM 100
 
 /* ---- 复合动作重试次数 ---- */
 #define COMPOUND_ACTION_MAX_RETRIES  3
@@ -357,6 +359,13 @@ static void cmd_suction_action(uint16_t value)
     g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
 
     /* Step 2: 吸膜电缸下落到吸膜点 */
+    ret = cylinder_set_push_length(CYLINDER_ID_SUCK,
+                                   SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM);
+    if (ret != 0) {
+        g_fault_status |= FAULT_BIT_SUCK_CYL;
+        printf("[CMD_0x0061] Step2 enable push segment FAIL ret=%d\r\n", ret);
+        goto done;
+    }
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         suck_cyl_commanded = 1;
@@ -458,6 +467,12 @@ static void cmd_lay_film_action(uint16_t value)
     g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
 
     /* Step 2: 吸膜电缸下落到铺膜点 */
+    ret = cylinder_set_push_length(CYLINDER_ID_SUCK, 0);
+    if (ret != 0) {
+        g_fault_status |= FAULT_BIT_SUCK_CYL;
+        printf("[CMD_0x0062] Step2 disable push segment FAIL ret=%d\r\n", ret);
+        goto done;
+    }
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, SUCTION_CYL_PAVE_POS, TIMEOUT_CYL_MOVE);
@@ -946,7 +961,7 @@ static void cmd_start_workflow(void)
         action_set_result(0x10, ACT_RESULT_FAILURE);
         return;
     }
-    if (delay_interruptible(1000) != 0) {
+    if (delay_interruptible(WORKFLOW_STEP_SETTLE_MS) != 0) {
         cmd_stop_workflow();
         return;
     }
@@ -966,7 +981,7 @@ static void cmd_start_workflow(void)
         action_set_result(0x10, ACT_RESULT_FAILURE);
         return;
     }
-    if (delay_interruptible(1000) != 0) {
+    if (delay_interruptible(WORKFLOW_STEP_SETTLE_MS) != 0) {
         cmd_stop_workflow();
         return;
     }
@@ -986,7 +1001,7 @@ static void cmd_start_workflow(void)
         action_set_result(0x10, ACT_RESULT_FAILURE);
         return;
     }
-    if (delay_interruptible(1000) != 0) {
+    if (delay_interruptible(WORKFLOW_STEP_SETTLE_MS) != 0) {
         cmd_stop_workflow();
         return;
     }

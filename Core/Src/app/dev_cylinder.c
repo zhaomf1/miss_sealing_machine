@@ -295,10 +295,10 @@ int cylinder_set_io_mode(CylinderId_t id, uint16_t enable)
  *           动作到位检查 & 阻塞等待接口
  * =================================================================== */
 
-#define CYL_POLL_INTERVAL_MS   100   // 轮询间隔
-#define CYL_CMD_SETTLE_MS      150   // 给电缸控制器刷新运动状态的时间，避免读到上一轮到位状态
+#define CYL_POLL_INTERVAL_MS    50   // 轮询间隔
+#define CYL_CMD_SETTLE_MS       50   // 给电缸控制器刷新运动状态的时间，避免读到上一轮到位状态
 #define CYL_POS_TOLERANCE      20    // 位置到位容差，单位0.01mm，20=0.20mm
-#define CYL_ARRIVED_CONFIRM    2     // 状态到位+位置到位连续确认次数
+#define CYL_ARRIVED_CONFIRM    1     // 状态到位+位置到位连续确认次数
 
 static uint16_t cylinder_abs_diff_u16(uint16_t a, uint16_t b)
 {
