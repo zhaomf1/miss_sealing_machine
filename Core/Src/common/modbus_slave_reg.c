@@ -128,14 +128,15 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 /* ---- 调试动作超时 (ms) ---- */
 #define TIMEOUT_CYL_MOVE      10000
 #define TIMEOUT_SUCTION_CUP    5000
-#define SUCTION_CYL_DOWN_WAIT_MS       1500
+#define SUCTION_CYL_DOWN_SETTLE_MS      150
+#define SUCTION_CYL_DOWN_POLL_MS        100
 
 /* ---- 复合动作重试次数 ---- */
 #define COMPOUND_ACTION_MAX_RETRIES  3
 
 /* ---- 复合动作电缸下落距离 (0.01mm) ---- */
 #define SUCTION_CYL_SUCK_POS   5200  // 吸膜点：吸膜操作时电缸下落距离 
-#define SUCTION_CYL_PAVE_POS   1500  // 铺膜点：铺膜操作时电缸下落距离 
+#define SUCTION_CYL_PAVE_POS   1300  // 铺膜点：铺膜操作时电缸下落距离 
 #define SEAL_CYL_DROP_DISTANCE  5000  // 封膜电缸下落距离 
 
 /* ---- EEPROM 参数全局缓存（上电初始化一次，避免频繁操作 EEPROM）---- */
@@ -145,7 +146,7 @@ static uint32_t g_eeprom_pave;       // 铺膜点位置 (0x0074)
 static uint32_t g_eeprom_get_place;  // 取放孔板位置 (0x0076)
 static uint16_t g_eeprom_temp_ctrl;  // 温度值 (0x0078)
 static uint16_t g_eeprom_press_time; // 压膜时间 (0x0079)
-static uint32_t g_eeprom_frequency;  // 总封膜次数 (0x18)
+static uint32_t g_eeprom_frequency;  // 总封膜次数 (0x0080)
 
 
 /* ===================================================================
@@ -225,6 +226,7 @@ static int delay_interruptible(uint32_t delay_ms)
 static int suck_cyl_move_down_wait_stop(uint16_t position)
 {
     CylinderMotionState_t state;
+    uint32_t elapsed = 0;
     int ret = cylinder_move_to(CYLINDER_ID_SUCK, position);
 
     if (ret != 0) {
@@ -233,28 +235,34 @@ static int suck_cyl_move_down_wait_stop(uint16_t position)
         return -3;
     }
 
-    if (delay_interruptible(SUCTION_CYL_DOWN_WAIT_MS) != 0) {
+    if (delay_interruptible(SUCTION_CYL_DOWN_SETTLE_MS) != 0) {
         return ACTION_WAIT_CANCELLED;
     }
+    elapsed = SUCTION_CYL_DOWN_SETTLE_MS;
 
-    ret = cylinder_read_motion_state(CYLINDER_ID_SUCK, &state);
-    if (ret != 0) {
-        printf("[CMD_0x0061] Step2 Suck cyl state read FAIL ret=%d\r\n", ret);
-        return -3;
+    while (elapsed < TIMEOUT_CYL_MOVE) {
+        ret = cylinder_read_motion_state(CYLINDER_ID_SUCK, &state);
+        if (ret != 0) {
+            printf("[CMD_0x0061] Step2 Suck cyl state read FAIL ret=%d\r\n", ret);
+            return -3;
+        }
+        if (state == CYLINDER_MOTION_ARRIVED || state == CYLINDER_MOTION_STALLED) {
+            printf("[CMD_0x0061] Step2 Suck cyl down complete target=%u state=%d (%lums)\r\n",
+                   position, (int)state, elapsed);
+            return 0;
+        }
+        if (state != CYLINDER_MOTION_RUNNING) {
+            printf("[CMD_0x0061] Step2 Suck cyl invalid state=%d\r\n", (int)state);
+            return -1;
+        }
+        if (delay_interruptible(SUCTION_CYL_DOWN_POLL_MS) != 0) {
+            return ACTION_WAIT_CANCELLED;
+        }
+        elapsed += SUCTION_CYL_DOWN_POLL_MS;
     }
 
-    if (state == CYLINDER_MOTION_ARRIVED || state == CYLINDER_MOTION_STALLED) {
-        printf("[CMD_0x0061] Step2 Suck cyl down complete target=%u state=%d (%ums)\r\n",
-               position, (int)state, SUCTION_CYL_DOWN_WAIT_MS);
-        return 0;
-    }
-
-    if (state == CYLINDER_MOTION_RUNNING) {
-        printf("[CMD_0x0061] Step2 Suck cyl still running target=%u (%ums)\r\n",
-               position, SUCTION_CYL_DOWN_WAIT_MS);
-    } else {
-        printf("[CMD_0x0061] Step2 Suck cyl invalid state=%d\r\n", (int)state);
-    }
+    printf("[CMD_0x0061] Step2 Suck cyl down timeout target=%u (%ums)\r\n",
+           position, TIMEOUT_CYL_MOVE);
     return -1;
 }
 

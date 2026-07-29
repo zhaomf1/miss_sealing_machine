@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define FUJUN_RUN_SPEED_001RPM  100000
+
 /* ------------------------------------------------------------------ *
  *  富俊步进电机驱动 (基于 485/Modbus RTU, 手册 SV126.1)
  *
@@ -61,6 +63,12 @@ int dev_fujun_motor_init(void)
     if (modbus_write_single_register(MODBUS_ADDR_FUJUN_MOTOR, 0x00D4, 0x0000) != MODBUS_OK) {
         return -1;
     }
+
+    if (fujun_motor_set_speed(FUJUN_RUN_SPEED_001RPM) != MODBUS_OK) {
+        printf("[FUJUN] Set speed FAIL\r\n");
+        return -1;
+    }
+    printf("[FUJUN] Run speed=%ld (0.01rpm)\r\n", (long)FUJUN_RUN_SPEED_001RPM);
 
     // 2. 设置正负限位端口 (0x009B)
     //     pos: 正限位, NPN, X0

@@ -6,6 +6,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#define SUCTION_CYL_PUSH_FORCE_PERCENT    15U
+#define SUCTION_CYL_PUSH_LENGTH_001MM    100U
+#define SUCTION_CYL_PUSH_SPEED_PERCENT    10U
+
 /* ------------------------------------------------------------------ *
  *  内部工具：电缸ID → Modbus 从机地址
  * ------------------------------------------------------------------ */
@@ -43,6 +47,17 @@ int dev_cylinder_init(void)
         return -1;
     }
     printf("[CYL] Suction cylinder home OK\r\n");
+
+    if (cylinder_set_push_dir(CYLINDER_ID_SUCK, CYLINDER_PUSH_DIR_FORWARD) != MODBUS_OK ||
+        cylinder_set_force(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_FORCE_PERCENT) != MODBUS_OK ||
+        cylinder_set_push_length(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_LENGTH_001MM) != MODBUS_OK ||
+        cylinder_set_push_speed(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_SPEED_PERCENT) != MODBUS_OK) {
+        printf("[CYL] Suction cylinder push config FAIL\r\n");
+        return -1;
+    }
+    printf("[CYL] Suction push config: dir=forward force=%u%% length=%u speed=%u%%\r\n",
+           SUCTION_CYL_PUSH_FORCE_PERCENT, SUCTION_CYL_PUSH_LENGTH_001MM,
+           SUCTION_CYL_PUSH_SPEED_PERCENT);
 
     /* ---- 封膜电缸归零 ---- */
     if (cylinder_home(CYLINDER_ID_SEAL) != MODBUS_OK) {

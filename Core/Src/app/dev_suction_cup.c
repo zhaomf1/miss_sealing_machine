@@ -6,6 +6,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#define SUC_HOLD_STABLE_MS       200U
+#define SUC_RELEASE_STABLE_MS   1000U
+
 #define SUCTION_POINT_BASE_ADDR     0x0100
 #define SUCTION_POINT_REGS_PER      3
 
@@ -22,17 +25,17 @@ int dev_suction_cup_init(void)
     }
     osDelay(10);
     /*设置吸取判断时间为2秒*/
-    if (suction_cup_set_judge_time(2) != 0) {
+    if (suction_cup_set_judge_time(1) != 0) {
         ret = -1;
     }
     osDelay(10);
     /*设置最小真空度*/
-    if (suction_cup_set_min_vacuum(15) != 0) {
+    if (suction_cup_set_min_vacuum(6) != 0) {
         ret = -1;
     }
     osDelay(10);
     /*设置最大真空度*/
-    if (suction_cup_set_max_vacuum(30) != 0) {
+    if (suction_cup_set_max_vacuum(20) != 0) {
         ret = -1;
     }
     osDelay(10);
@@ -244,8 +247,10 @@ int suction_cup_wait_state(SuctionCupState_t desired_state, uint32_t timeout_ms)
             return -2;  // 通讯失败
         }
         if (state == desired_state) {
+            uint32_t stable_required_ms = (desired_state == SUCTION_CUP_HOLDING) ?
+                                          SUC_HOLD_STABLE_MS : SUC_RELEASE_STABLE_MS;
             uint32_t stable_ms = 0;
-            while (stable_ms < 1000) {
+            while (stable_ms < stable_required_ms) {
                 if (modbus_reg_is_stop_requested()) {
                     return ACTION_WAIT_CANCELLED;
                 }
