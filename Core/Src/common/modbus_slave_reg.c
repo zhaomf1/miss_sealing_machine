@@ -130,8 +130,8 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define TIMEOUT_SUCTION_CUP    5000
 #define SUCTION_CYL_DOWN_SETTLE_MS      150
 #define SUCTION_CYL_DOWN_POLL_MS        100
-#define SUCTION_CUP_HOLD_SETTLE_MS       300
-#define SUCTION_CUP_RELEASE_SETTLE_MS    300
+#define SUCTION_CUP_HOLD_SETTLE_MS       150
+#define SUCTION_CUP_RELEASE_SETTLE_MS    150
 #define WORKFLOW_STEP_SETTLE_MS          300
 #define SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM 100
 
@@ -224,6 +224,14 @@ static int delay_interruptible(uint32_t delay_ms)
         elapsed += slice;
     }
     return 0;
+}
+
+static void workflow_log_elapsed(const char *name, uint32_t elapsed_ms, const char *result)
+{
+    printf("[WORKFLOW] %s elapsed: %lums (%lu.%03lus), result=%s\r\n",
+           name, (unsigned long)elapsed_ms,
+           (unsigned long)(elapsed_ms / 1000U),
+           (unsigned long)(elapsed_ms % 1000U), result);
 }
 
 /* 吸膜下压以电缸运动状态判定，不比较实际位置。 */
@@ -554,7 +562,7 @@ static void cmd_seal_action(uint16_t value)
     uint8_t result = ACT_RESULT_FAILURE;
     int ret;
 
-    printf("[CMD_0x0063] Seal action: fujun_target=%lu press_time=%ums\r\n",
+    printf("[CMD_0x0063] Seal action: fujun_target=%lu press_time=%us\r\n",
            (unsigned long)g_eeprom_suck_seal, g_eeprom_press_time);
 
     /* Step 1: 富俊电机移动到吸膜/封膜位置 */
@@ -941,86 +949,116 @@ static void cmd_suction_cup_ctrl(uint16_t op)
 static void cmd_start_workflow(void)
 {
     uint32_t new_frequency;
+    uint32_t workflow_start_tick;
+    uint32_t step_start_tick;
 
     g_stop_requested = 0;
     modbus_reg_set_system_state(SYS_STATE_RUNNING);
+    workflow_start_tick = osKernelGetTickCount();
     printf("[WORKFLOW] === Start ===\r\n");
 
     /* Step 1: 0x61 吸膜动作 */
     printf("[WORKFLOW] Step1/4: Suction action (0x61)\r\n");
+    step_start_tick = osKernelGetTickCount();
     cmd_suction_action(0);
     if (g_stop_requested) {
+        workflow_log_elapsed("Step1 Suction", osKernelGetTickCount() - step_start_tick, "STOPPED");
         printf("[WORKFLOW] Stopped at Step1\r\n");
         cmd_stop_workflow();
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "STOPPED");
         return;
     }
     if ((g_action_status & 0xFF) != ACT_RESULT_SUCCESS) {
+        workflow_log_elapsed("Step1 Suction", osKernelGetTickCount() - step_start_tick, "FAILED");
         printf("[WORKFLOW] Aborted at Step1\r\n");
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         cmd_stop_workflow();
         action_set_result(0x10, ACT_RESULT_FAILURE);
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "FAILED");
         return;
     }
+    workflow_log_elapsed("Step1 Suction", osKernelGetTickCount() - step_start_tick, "SUCCESS");
     if (delay_interruptible(WORKFLOW_STEP_SETTLE_MS) != 0) {
         cmd_stop_workflow();
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "STOPPED");
         return;
     }
 
     /* Step 2: 0x62 铺膜动作 */
     printf("[WORKFLOW] Step2/4: Lay film action (0x62)\r\n");
+    step_start_tick = osKernelGetTickCount();
     cmd_lay_film_action(0);
     if (g_stop_requested) {
+        workflow_log_elapsed("Step2 Lay film", osKernelGetTickCount() - step_start_tick, "STOPPED");
         printf("[WORKFLOW] Stopped at Step2\r\n");
         cmd_stop_workflow();
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "STOPPED");
         return;
     }
     if ((g_action_status & 0xFF) != ACT_RESULT_SUCCESS) {
+        workflow_log_elapsed("Step2 Lay film", osKernelGetTickCount() - step_start_tick, "FAILED");
         printf("[WORKFLOW] Aborted at Step2\r\n");
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         cmd_stop_workflow();
         action_set_result(0x10, ACT_RESULT_FAILURE);
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "FAILED");
         return;
     }
+    workflow_log_elapsed("Step2 Lay film", osKernelGetTickCount() - step_start_tick, "SUCCESS");
     if (delay_interruptible(WORKFLOW_STEP_SETTLE_MS) != 0) {
         cmd_stop_workflow();
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "STOPPED");
         return;
     }
 
     /* Step 3: 0x63 封膜动作 */
     printf("[WORKFLOW] Step3/4: Seal action (0x63)\r\n");
+    step_start_tick = osKernelGetTickCount();
     cmd_seal_action(0);
     if (g_stop_requested) {
+        workflow_log_elapsed("Step3 Seal", osKernelGetTickCount() - step_start_tick, "STOPPED");
         printf("[WORKFLOW] Stopped at Step3\r\n");
         cmd_stop_workflow();
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "STOPPED");
         return;
     }
     if ((g_action_status & 0xFF) != ACT_RESULT_SUCCESS) {
+        workflow_log_elapsed("Step3 Seal", osKernelGetTickCount() - step_start_tick, "FAILED");
         printf("[WORKFLOW] Aborted at Step3\r\n");
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         cmd_stop_workflow();
         action_set_result(0x10, ACT_RESULT_FAILURE);
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "FAILED");
         return;
     }
+    workflow_log_elapsed("Step3 Seal", osKernelGetTickCount() - step_start_tick, "SUCCESS");
     if (delay_interruptible(WORKFLOW_STEP_SETTLE_MS) != 0) {
         cmd_stop_workflow();
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "STOPPED");
         return;
     }
 
     /* Step 4: 0x64 取/放孔板 */
     printf("[WORKFLOW] Step4/4: Well plate action (0x64)\r\n");
+    step_start_tick = osKernelGetTickCount();
     cmd_well_plate_action(0);
     if (g_stop_requested) {
+        workflow_log_elapsed("Step4 Well plate", osKernelGetTickCount() - step_start_tick, "STOPPED");
         printf("[WORKFLOW] Stopped at Step4\r\n");
         cmd_stop_workflow();
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "STOPPED");
         return;
     }
     if ((g_action_status & 0xFF) != ACT_RESULT_SUCCESS) {
+        workflow_log_elapsed("Step4 Well plate", osKernelGetTickCount() - step_start_tick, "FAILED");
         printf("[WORKFLOW] Aborted at Step4\r\n");
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         cmd_stop_workflow();
         action_set_result(0x10, ACT_RESULT_FAILURE);
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "FAILED");
         return;
     }
+    workflow_log_elapsed("Step4 Well plate", osKernelGetTickCount() - step_start_tick, "SUCCESS");
 
     /* 封膜成功，总次数 +1 并保存到 EEPROM */
     new_frequency = g_eeprom_frequency + 1U;
@@ -1032,6 +1070,7 @@ static void cmd_start_workflow(void)
         printf("[WORKFLOW] Save seal count FAIL\r\n");
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         action_set_result(0x10, ACT_RESULT_FAILURE);
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "FAILED");
         return;
     }
     printf("[PARAM_SAVE] OK reg=0x0080 name=%s value=%lu\r\n",
@@ -1043,6 +1082,7 @@ static void cmd_start_workflow(void)
 
     modbus_reg_set_system_state(SYS_STATE_FINISHED);
     action_set_result(0x10, ACT_RESULT_SUCCESS);
+    workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "SUCCESS");
     printf("[WORKFLOW] === Complete ===\r\n");
 }
 
