@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #define SUC_HOLD_STABLE_MS       200U
-#define SUC_RELEASE_STABLE_MS   1000U
+#define SUC_RELEASE_STABLE_MS      0U
 
 #define SUCTION_POINT_BASE_ADDR     0x0100
 #define SUCTION_POINT_REGS_PER      3
