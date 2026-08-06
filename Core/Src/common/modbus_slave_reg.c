@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "main.h"
 #include "modbus_slave_reg.h"
 #include "app_control.h"
 #include "dev_cylinder.h"
@@ -16,8 +17,6 @@
 
 #define MODBUS_SLAVE_ADDR         0x01
 #define MODBUS_MAX_REG_ADDR       0x00A1  // 最大寄存器地址 + 1
-#define FIRMWARE_VERSION_CODE     101     // 固件版本号 (寄存器 0x0000)
-
 /* modbus协议寄存器表 */
 static const ModbusRegDef_t reg_map[] = {
     /* 2.1 系统命令 */
@@ -672,15 +671,16 @@ static void cmd_stop_workflow(void)
     uint8_t result = ACT_RESULT_SUCCESS;
     uint16_t prev_state = g_system_state;
     int ret;
+    uint8_t seal_cyl_homed = 0;
+    uint8_t suck_cyl_homed = 0;
 
     /* 停止恢复动作自身不应再被取消 */
     g_stop_requested = 0;
 
     /* 未初始化状态下外设不可用，无需执行停止操作 */
     if (g_system_state == SYS_STATE_UNINITIALIZED) {
-        printf("[STOP] System not initialized, skip\r\n");
+        printf("[STOP] System not initialized, skip and keep UNINITIALIZED\r\n");
         action_set_result(0x12, ACT_RESULT_SUCCESS);
-        modbus_reg_set_system_state(SYS_STATE_FINISHED);
         return;
     }
 
@@ -703,6 +703,7 @@ static void cmd_stop_workflow(void)
         result = ACT_RESULT_FAILURE;
     } else {
         g_fault_status &= (uint16_t)~FAULT_BIT_SEAL_CYL;
+        seal_cyl_homed = 1;
         printf("[STOP] Step2: Seal cylinder home OK\r\n");
     }
 
@@ -731,18 +732,25 @@ static void cmd_stop_workflow(void)
         result = ACT_RESULT_FAILURE;
     } else {
         g_fault_status &= (uint16_t)~FAULT_BIT_SUCK_CYL;
+        suck_cyl_homed = 1;
         printf("[STOP] Step4: Suction cylinder home OK\r\n");
     }
 
     /* Step 5: 富俊电机归零 */
-    printf("[STOP] Step5: Fujun motor home\r\n");
-    ret = fujun_motor_wait_position((int32_t)g_eeprom_zero);
-    if (ret == 0) {
-        g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
-        printf("[STOP] Step5: Fujun motor home OK\r\n");
+    if (seal_cyl_homed && suck_cyl_homed) {
+        printf("[STOP] Step5: Fujun motor home\r\n");
+        ret = fujun_motor_wait_position((int32_t)g_eeprom_zero);
+        if (ret == 0) {
+            g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
+            printf("[STOP] Step5: Fujun motor home OK\r\n");
+        } else {
+            g_fault_status |= FAULT_BIT_LEAD_SCREW;
+            printf("[STOP] Step5: Fujun motor home FAIL (ret=%d)\r\n", ret);
+            result = ACT_RESULT_FAILURE;
+        }
     } else {
-        g_fault_status |= FAULT_BIT_LEAD_SCREW;
-        printf("[STOP] Step5: Fujun motor home FAIL (ret=%d)\r\n", ret);
+        printf("[STOP] Step5: Fujun motor home SKIPPED, cylinder not homed (seal=%u suck=%u)\r\n",
+               seal_cyl_homed, suck_cyl_homed);
         result = ACT_RESULT_FAILURE;
     }
 
@@ -822,6 +830,11 @@ done:
         modbus_reg_set_system_state(SYS_STATE_INITIALIZED);
     } else {
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
+        printf("[INIT] Initialization failed, run safe stop sequence\r\n");
+        cmd_stop_workflow();
+        action_set_result(0x11, ACT_RESULT_FAILURE);
+        printf("[INIT] === Init sequence FAIL ===\r\n");
+        return;
     }
 
     action_set_result(0x11, result);
@@ -1246,7 +1259,7 @@ int modbus_reg_read_value(uint16_t addr, uint16_t *out_value)
     if (!def || !(def->access & 1)) return -1;
 
     switch (addr) {
-        case 0x0000: *out_value = FIRMWARE_VERSION_CODE; break;     // 版本信息
+        case 0x0000: *out_value = FW_VERSION_PACKED; break;         // 高字节=主版本，低字节=次版本
         case 0x0001: *out_value = g_slave_addr; break;               // 设备地址
         case 0x0002: *out_value = g_fault_status; break;             // 故障位图
         case 0x0013: *out_value = g_system_state; break;             // 获取系统状态

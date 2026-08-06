@@ -106,7 +106,8 @@ int main(void)
     MX_USART2_UART_Init();
     MX_USART3_UART_Init();
     /* USER CODE BEGIN 2 */
-    printf("system start,firmware_version:%s\r\n",FIRMWARE_VERSION);
+    printf("system start,firmware_version:V%u.%u\r\n",
+           (unsigned)FW_VERSION_MAJOR, (unsigned)FW_VERSION_MINOR);
     uart_dma_init();        //DMA初始化
     /* 上电一次性加载 EEPROM 参数到全局缓存 */
     HAL_Delay(1000);        //等待1秒

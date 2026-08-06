@@ -48,7 +48,11 @@ extern uint8_t host_rx_backup[2][HOST_BUFFER_SIZE];        // 串口1 双缓冲�
 extern uint8_t modbus_rtu_rx_buf[MODBUS_BUFFER_SIZE],modbus_rtu_rx_backup[MODBUS_BUFFER_SIZE];// 串口3
 /* USER CODE END EC */
 
-#define FIRMWARE_VERSION "BetaV1.2.2"        //固件版本
+/* 固件版本：0x0000 高字节=主版本，低字节=次版本。 */
+#define FW_VERSION_MAJOR  1U
+#define FW_VERSION_MINOR  2U
+#define FW_VERSION_PACKED \
+    (((uint16_t)FW_VERSION_MAJOR << 8) | (uint16_t)FW_VERSION_MINOR)
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
