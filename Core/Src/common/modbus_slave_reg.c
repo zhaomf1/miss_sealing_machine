@@ -20,9 +20,9 @@
 /* modbus协议寄存器表 */
 static const ModbusRegDef_t reg_map[] = {
     /* 2.1 系统命令 */
-    {0x0000, REG_ACCESS_RO, REG_TYPE_U16},   // 获取版本信息
-    {0x0001, REG_ACCESS_RW, REG_TYPE_U16},   // 修改设备地址
+    {0x0000, REG_ACCESS_RO, REG_TYPE_U32},   // 获取版本信息，占用 0x0000~0x0001
     {0x0002, REG_ACCESS_RO, REG_TYPE_U16},   // 获取设备故障信息
+    {0x0003, REG_ACCESS_RW, REG_TYPE_U16},   // 修改设备地址
 
     /* 2.2 工作流程控制 */
     {0x0010, REG_ACCESS_WO, REG_TYPE_U16},   // 开始流程
@@ -1251,7 +1251,11 @@ int modbus_reg_read_value(uint16_t addr, uint16_t *out_value)
     if (!def && addr > 0) {
         def = modbus_reg_lookup(addr - 1);
         if (def && def->type == REG_TYPE_U32 && (def->access & 1)) {
-            *out_value = shadow[addr];
+            if (addr == 0x0001) {
+                *out_value = (uint16_t)(FW_VERSION_PACKED & 0xFFFFU);
+            } else {
+                *out_value = shadow[addr];
+            }
             return 0;
         }
     }
@@ -1259,9 +1263,9 @@ int modbus_reg_read_value(uint16_t addr, uint16_t *out_value)
     if (!def || !(def->access & 1)) return -1;
 
     switch (addr) {
-        case 0x0000: *out_value = FW_VERSION_PACKED; break;         // 高字节=主版本，低字节=次版本
-        case 0x0001: *out_value = g_slave_addr; break;               // 设备地址
+        case 0x0000: *out_value = (uint16_t)(FW_VERSION_PACKED >> 16); break;
         case 0x0002: *out_value = g_fault_status; break;             // 故障位图
+        case 0x0003: *out_value = g_slave_addr; break;               // 设备地址
         case 0x0013: *out_value = g_system_state; break;             // 获取系统状态
 
         case 0x0020: {                                               // 实时温度
@@ -1297,7 +1301,7 @@ int modbus_reg_write_execute(uint16_t addr, uint16_t value)
     if (!def || !(def->access & 2)) return WRITE_ERR_ILLEGAL;
 
     switch (addr) {
-        case 0x0001:  // 修改设备地址
+        case 0x0003:  // 修改设备地址
             if (value < 1U || value > 247U) {
                 return WRITE_ERR_ILLEGAL;
             }
@@ -1537,7 +1541,7 @@ void modbus_apply_pending_slave_addr(void)
 {
     if (g_slave_addr_pending) {
         g_slave_addr = g_pending_slave_addr;
-        shadow[0x0001] = g_slave_addr;
+        shadow[0x0003] = g_slave_addr;
         g_slave_addr_pending = 0;
         printf("[MODBUS] Slave address changed to %u\r\n", g_slave_addr);
     }

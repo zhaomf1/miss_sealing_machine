@@ -162,7 +162,7 @@ static void modbus_handle_write_single(uint8_t *rx, uint16_t rx_len)
     resp[6] = crc & 0xFF;
     resp[7] = (crc >> 8) & 0xFF;
     modbus_send_response(resp, 8);
-    if (addr == 0x0001) {
+    if (addr == 0x0003) {
         modbus_apply_pending_slave_addr();
     }
 }
@@ -246,7 +246,7 @@ static void modbus_handle_write_multiple(uint8_t *rx, uint16_t rx_len)
     modbus_tx_buf[7] = (uint8_t)((crc >> 8) & 0xFF);
 
     modbus_send_response(modbus_tx_buf, 8);
-    if (start_addr == 0x0001 && reg_count == 1) {
+    if (start_addr == 0x0003 && reg_count == 1) {
         modbus_apply_pending_slave_addr();
     }
 }
