@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\miss_sealing_machine\miss_sealing_machine.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\miss_sealing_machine\miss_sealing_machine.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060061: Last Updated: Mon Aug 10 13:38:55 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060061: Last Updated: Wed Aug 12 15:15:39 2026
 <BR><P>
 <H3>Maximum Stack Usage =        896 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -709,20 +709,20 @@ Global Symbols
 <LI><a href="#[11b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;wait_drdy
 <LI><a href="#[9d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_I2C_Mem_Write
 <LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_I2C_Mem_Read
-<LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_WaitFlagStateUntilTimeout
 <LI><a href="#[e0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UART_Transmit
 <LI><a href="#[81]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_DMA_Init
 <LI><a href="#[a5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_IWDG_Init
 <LI><a href="#[c5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_Transmit
 <LI><a href="#[c2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_Receive
 <LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_DMA_Abort
-<LI><a href="#[e1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UART_WaitOnFlagUntilTimeout
-<LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_TransmitReceive
+<LI><a href="#[fe]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_WaitFlagStateUntilTimeout
 <LI><a href="#[9f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;I2C_WaitOnTXEFlagUntilTimeout
 <LI><a href="#[9c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;I2C_WaitOnRXNEFlagUntilTimeout
 <LI><a href="#[ea]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;I2C_WaitOnMasterAddressFlagUntilTimeout
 <LI><a href="#[9a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;I2C_WaitOnFlagUntilTimeout
 <LI><a href="#[a0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;I2C_WaitOnBTFFlagUntilTimeout
+<LI><a href="#[e1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UART_WaitOnFlagUntilTimeout
+<LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_TransmitReceive
 </UL>
 
 <P><STRONG><a name="[e3]"></a>HAL_I2C_AbortCpltCallback</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, stm32f4xx_hal_i2c.o(i.HAL_I2C_AbortCpltCallback))
@@ -961,15 +961,15 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[bc]"></a>HAL_SD_AbortCallback</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, stm32f4xx_hal_sd.o(i.HAL_SD_AbortCallback))
-<BR><BR>[Called By]<UL><LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMATxAbort
+<BR><BR>[Called By]<UL><LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SD_IRQHandler
+<LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMATxAbort
 <LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMARxAbort
-<LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SD_IRQHandler
 </UL>
 
 <P><STRONG><a name="[b7]"></a>HAL_SD_ErrorCallback</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, stm32f4xx_hal_sd.o(i.HAL_SD_ErrorCallback))
-<BR><BR>[Called By]<UL><LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMATxAbort
+<BR><BR>[Called By]<UL><LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SD_IRQHandler
+<LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMATxAbort
 <LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMARxAbort
-<LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SD_IRQHandler
 </UL>
 
 <P><STRONG><a name="[b1]"></a>HAL_SD_GetCardState</STRONG> (Thumb, 44 bytes, Stack size 16 bytes, stm32f4xx_hal_sd.o(i.HAL_SD_GetCardState))
@@ -1008,15 +1008,15 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[be]"></a>HAL_SPI_ErrorCallback</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, stm32f4xx_hal_spi.o(i.HAL_SPI_ErrorCallback))
-<BR><BR>[Called By]<UL><LI><a href="#[5d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_DMAAbortOnError
-<LI><a href="#[bd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_IRQHandler
+<BR><BR>[Called By]<UL><LI><a href="#[bd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_IRQHandler
+<LI><a href="#[5d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_DMAAbortOnError
 </UL>
 
 <P><STRONG><a name="[bd]"></a>HAL_SPI_IRQHandler</STRONG> (Thumb, 246 bytes, Stack size 16 bytes, stm32f4xx_hal_spi.o(i.HAL_SPI_IRQHandler))
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = HAL_SPI_IRQHandler
 </UL>
-<BR>[Calls]<UL><LI><a href="#[be]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_ErrorCallback
-<LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_DMA_Abort_IT
+<BR>[Calls]<UL><LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_DMA_Abort_IT
+<LI><a href="#[be]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_ErrorCallback
 </UL>
 <BR>[Called By]<UL><LI><a href="#[2e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI2_IRQHandler
 <LI><a href="#[2d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI1_IRQHandler
@@ -1045,8 +1045,8 @@ Global Symbols
 <P><STRONG><a name="[c2]"></a>HAL_SPI_Receive</STRONG> (Thumb, 340 bytes, Stack size 40 bytes, stm32f4xx_hal_spi.o(i.HAL_SPI_Receive))
 <BR><BR>[Stack]<UL><LI>Max Depth = 152<LI>Call Chain = HAL_SPI_Receive &rArr; HAL_SPI_TransmitReceive &rArr; SPI_EndRxTxTransaction &rArr; SPI_WaitFlagStateUntilTimeout
 </UL>
-<BR>[Calls]<UL><LI><a href="#[c4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_EndRxTransaction
-<LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GetTick
+<BR>[Calls]<UL><LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GetTick
+<LI><a href="#[c4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_EndRxTransaction
 <LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_TransmitReceive
 </UL>
 <BR>[Called By]<UL><LI><a href="#[11c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;read_data
@@ -1056,8 +1056,8 @@ Global Symbols
 <P><STRONG><a name="[c5]"></a>HAL_SPI_Transmit</STRONG> (Thumb, 358 bytes, Stack size 40 bytes, stm32f4xx_hal_spi.o(i.HAL_SPI_Transmit))
 <BR><BR>[Stack]<UL><LI>Max Depth = 96<LI>Call Chain = HAL_SPI_Transmit &rArr; SPI_EndRxTxTransaction &rArr; SPI_WaitFlagStateUntilTimeout
 </UL>
-<BR>[Calls]<UL><LI><a href="#[c6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_EndRxTxTransaction
-<LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GetTick
+<BR>[Calls]<UL><LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GetTick
+<LI><a href="#[c6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_EndRxTxTransaction
 </UL>
 <BR>[Called By]<UL><LI><a href="#[116]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;write_cmd
 <LI><a href="#[11c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;read_data
@@ -1068,8 +1068,8 @@ Global Symbols
 <P><STRONG><a name="[c3]"></a>HAL_SPI_TransmitReceive</STRONG> (Thumb, 496 bytes, Stack size 56 bytes, stm32f4xx_hal_spi.o(i.HAL_SPI_TransmitReceive))
 <BR><BR>[Stack]<UL><LI>Max Depth = 112<LI>Call Chain = HAL_SPI_TransmitReceive &rArr; SPI_EndRxTxTransaction &rArr; SPI_WaitFlagStateUntilTimeout
 </UL>
-<BR>[Calls]<UL><LI><a href="#[c6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_EndRxTxTransaction
-<LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GetTick
+<BR>[Calls]<UL><LI><a href="#[80]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GetTick
+<LI><a href="#[c6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SPI_EndRxTxTransaction
 </UL>
 <BR>[Called By]<UL><LI><a href="#[c2]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SPI_Receive
 </UL>
@@ -1165,12 +1165,12 @@ Global Symbols
 <BR><BR>[Stack]<UL><LI>Max Depth = 48<LI>Call Chain = HAL_UART_IRQHandler &rArr; HAL_DMA_Abort
 </UL>
 <BR>[Calls]<UL><LI><a href="#[7f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_DMA_Abort
+<LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_DMA_Abort_IT
 <LI><a href="#[d9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UART_TxCpltCallback
 <LI><a href="#[d7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UART_ErrorCallback
 <LI><a href="#[d8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UARTEx_RxEventCallback
 <LI><a href="#[d6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UART_Receive_IT
 <LI><a href="#[d4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UART_EndRxTransfer
-<LI><a href="#[bb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_DMA_Abort_IT
 </UL>
 <BR>[Called By]<UL><LI><a href="#[31]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;USART3_IRQHandler
 <LI><a href="#[30]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;USART2_IRQHandler
@@ -1415,9 +1415,9 @@ Global Symbols
 <BR>[Calls]<UL><LI><a href="#[fd]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SDMMC_GetCmdResp1
 <LI><a href="#[fc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SDIO_SendCommand
 </UL>
-<BR>[Called By]<UL><LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMATxAbort
+<BR>[Called By]<UL><LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SD_IRQHandler
+<LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMATxAbort
 <LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SD_DMARxAbort
-<LI><a href="#[b4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_SD_IRQHandler
 </UL>
 
 <P><STRONG><a name="[fd]"></a>SDMMC_GetCmdResp1</STRONG> (Thumb, 278 bytes, Stack size 8 bytes, stm32f4xx_ll_sdmmc.o(i.SDMMC_GetCmdResp1))
@@ -1974,6 +1974,7 @@ Global Symbols
 <LI><a href="#[12f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_stop_workflow
 <LI><a href="#[137]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_seal_action
 <LI><a href="#[130]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_lay_film_action
+<LI><a href="#[129]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_init_workflow
 <LI><a href="#[128]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_fujun_move_to
 <LI><a href="#[126]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_fujun_home
 </UL>
@@ -3340,13 +3341,14 @@ Local Symbols
 <BR>[Called By]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;compound_action_task
 </UL>
 
-<P><STRONG><a name="[129]"></a>cmd_init_workflow</STRONG> (Thumb, 236 bytes, Stack size 16 bytes, modbus_slave_reg.o(i.cmd_init_workflow))
+<P><STRONG><a name="[129]"></a>cmd_init_workflow</STRONG> (Thumb, 254 bytes, Stack size 16 bytes, modbus_slave_reg.o(i.cmd_init_workflow))
 <BR><BR>[Stack]<UL><LI>Max Depth = 872<LI>Call Chain = cmd_init_workflow &rArr; cmd_stop_workflow &rArr; fujun_motor_wait_position &rArr; fujun_motor_run_pulses &rArr; write_int32 &rArr; modbus_write_multiple_registers &rArr; modbus_transaction &rArr; osMutexAcquire &rArr; xQueueTakeMutexRecursive &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[12b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;temp_ctrl_start
 <LI><a href="#[12a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;modbus_reg_set_system_state
 <LI><a href="#[12f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_stop_workflow
 <LI><a href="#[12c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;dev_suction_cup_init
+<LI><a href="#[127]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;fujun_motor_wait_position
 <LI><a href="#[12e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;dev_fujun_motor_init
 <LI><a href="#[12d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;dev_cylinder_init
 <LI><a href="#[118]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__2printf

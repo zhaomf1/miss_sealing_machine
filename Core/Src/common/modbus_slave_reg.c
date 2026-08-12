@@ -806,11 +806,20 @@ static void cmd_init_workflow(void)
     g_fault_status &= (uint16_t)~(FAULT_BIT_SUCK_CYL | FAULT_BIT_SEAL_CYL);
     printf("[INIT] Step3: Cylinders init OK\r\n");
 
-    /* ---- Step 4: 富俊电机初始化 ---- */
+    /* ---- Step 4: 富俊电机归零后移动到取放孔板位置 ---- */
     printf("[INIT] Step4: Initializing Fujun motor...\r\n");
     if (dev_fujun_motor_init() == 0) {
-        g_fault_status &= (uint16_t)~FAULT_BIT_LEAD_SCREW;
-        printf("[INIT] Step4: Fujun motor init OK\r\n");
+        printf("[INIT] Step4: Moving Fujun motor to well plate position=%lu...\r\n",
+               (unsigned long)g_eeprom_get_place);
+        if (fujun_motor_wait_position((int32_t)g_eeprom_get_place) == 0) {
+            g_fault_status &= (uint16_t)~FAULT_BIT_LEAD_SCREW;
+            printf("[INIT] Step4: Fujun motor init OK\r\n");
+        } else {
+            printf("[INIT] Step4: Fujun motor move to well plate position FAIL\r\n");
+            g_fault_status |= FAULT_BIT_LEAD_SCREW;
+            result = ACT_RESULT_FAILURE;
+            goto done;
+        }
     } else {
         printf("[INIT] Step4: Fujun motor init FAIL\r\n");
         g_fault_status |= FAULT_BIT_LEAD_SCREW;
@@ -1194,9 +1203,9 @@ void compound_action_task(void *argument)
     for (;;) {
         if (osMessageQueueGet(compound_action_queue, &msg, NULL, osWaitForever) == osOK) {
             switch (msg.reg_addr) {
-                case 0x10: cmd_start_workflow();                  break;
-                case 0x11: cmd_init_workflow();                  break;
-                case 0x30: cmd_fujun_move_to(msg.value32);        break;
+                case 0x10: cmd_start_workflow();                break;
+                case 0x11: cmd_init_workflow();                 break;
+                case 0x30: cmd_fujun_move_to(msg.value32);      break;
                 case 0x40: cmd_suck_cyl_move(msg.value);        break;
                 case 0x41: cmd_seal_cyl_move(msg.value);        break;
                 case 0x50: cmd_suction_cup_ctrl(msg.value);     break;
