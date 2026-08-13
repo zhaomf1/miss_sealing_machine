@@ -250,14 +250,26 @@ int suction_cup_wait_state(SuctionCupState_t desired_state, uint32_t timeout_ms)
             uint32_t stable_required_ms = (desired_state == SUCTION_CUP_HOLDING) ?
                                           SUC_HOLD_STABLE_MS : SUC_RELEASE_STABLE_MS;
             uint32_t stable_ms = 0;
+
+            /* Every stability interval must still report the requested state. */
             while (stable_ms < stable_required_ms) {
                 if (modbus_reg_is_stop_requested()) {
                     return ACTION_WAIT_CANCELLED;
                 }
                 osDelay(SUC_POLL_INTERVAL_MS);
+                elapsed += SUC_POLL_INTERVAL_MS;
                 stable_ms += SUC_POLL_INTERVAL_MS;
+
+                if (suction_cup_read_state(&state) != MODBUS_OK) {
+                    return -2;
+                }
+                if (state != desired_state) {
+                    printf("[SUC] State changed during confirm: expected=%d actual=%d\\r\\n",
+                           desired_state, state);
+                    return -2;
+                }
             }
-            return 0;   // 达到期望状态
+            return 0;   // 达到期望状态并稳定保持
         }
         // 检测异常终态：掉落 (3)、未吸住 (2) — 不再等待
         if (desired_state == SUCTION_CUP_HOLDING &&

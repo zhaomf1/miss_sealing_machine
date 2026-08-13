@@ -129,7 +129,6 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define TIMEOUT_SUCTION_CUP    5000
 #define SUCTION_CYL_DOWN_SETTLE_MS      150
 #define SUCTION_CYL_DOWN_POLL_MS        100
-#define SUCTION_CUP_HOLD_SETTLE_MS       150
 #define SUCTION_CUP_RELEASE_SETTLE_MS    150
 #define WORKFLOW_STEP_SETTLE_MS          300
 #define SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM 100
@@ -407,10 +406,23 @@ static void cmd_suction_action(uint16_t value)
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         /* 重试前先释放吸盘，确保硬件状态机从上次失败中复位 */
         if (attempt > 0) {
-            suction_cup_release();
-            if (delay_interruptible(500) != 0) goto done;
+            ret = suction_cup_release();
+            if (ret != 0) {
+                printf("[CMD_0x0061] Step3 retry release cmd FAIL (ret=%d)\\r\\n", ret);
+                continue;
+            }
+            ret = suction_cup_wait_release(TIMEOUT_SUCTION_CUP);
+            if (ret != 0) {
+                if (ret == ACTION_WAIT_CANCELLED) goto done;
+                printf("[CMD_0x0061] Step3 retry release FAIL (ret=%d)\\r\\n", ret);
+                continue;
+            }
         }
-        suction_cup_suck();
+        ret = suction_cup_suck();
+        if (ret != 0) {
+            printf("[CMD_0x0061] Step3 suck cmd FAIL (ret=%d)\\r\\n", ret);
+            continue;
+        }
         ret = suction_cup_wait_hold(TIMEOUT_SUCTION_CUP);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
@@ -423,9 +435,6 @@ static void cmd_suction_action(uint16_t value)
         goto done;
     }
     g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
-
-    /* 吸盘吸取成功后短暂等待，确保吸稳。 */
-    if (delay_interruptible(SUCTION_CUP_HOLD_SETTLE_MS) != 0) goto done;
 
     /* Step 4: 吸膜电缸移动到0 */
     ret = suck_cyl_return_to_zero();
@@ -947,8 +956,17 @@ static void cmd_suction_cup_ctrl(uint16_t op)
     int ret = -1;
     if (op == 1) {
         for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-            if (attempt > 0) { suction_cup_release(); osDelay(500); }
-            suction_cup_suck();
+            if (attempt > 0) {
+                ret = suction_cup_release();
+                if (ret != 0) continue;
+                ret = suction_cup_wait_release(TIMEOUT_SUCTION_CUP);
+                if (ret != 0) {
+                    if (ret == ACTION_WAIT_CANCELLED) break;
+                    continue;
+                }
+            }
+            ret = suction_cup_suck();
+            if (ret != 0) continue;
             ret = suction_cup_wait_hold(TIMEOUT_SUCTION_CUP);
             if (ret == 0) break;
             if (ret == ACTION_WAIT_CANCELLED) break;
