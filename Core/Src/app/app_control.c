@@ -218,7 +218,8 @@ void temp_ctrl_task(void *argument)
         /* 读取两路传感器 */
         float t1 = ads124s08_read_sensor_temp(&hspi1, 0);  /* 传感器1: AIN0~3 */
         float t2 = ads124s08_read_sensor_temp(&hspi1, 1);  /* 传感器2: AIN4~7 */
-        modbus_reg_set_temp_fault((isnan(t1) || isnan(t2)) ? 1 : 0);
+        /* T2 is reserved and does not participate in temperature fault reporting. */
+        modbus_reg_set_temp_fault(isnan(t1) ? 1 : 0);
 
         /*
          * 温度采集与加热控制相互独立：
