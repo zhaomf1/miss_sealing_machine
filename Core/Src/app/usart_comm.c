@@ -204,7 +204,7 @@ static void modbus_handle_write_multiple(uint8_t *rx, uint16_t rx_len)
                        | ((uint32_t)rx[9] << 8)  | rx[10];
 
         int ret32 = modbus_reg_write32_execute(start_addr, val32);
-        if (ret32 == WRITE_ERR_QUEUE_FULL) {
+        if (ret32 == WRITE_ERR_QUEUE_FULL || ret32 == WRITE_ERR_BUSY) {
             modbus_send_exception(0x10, MODBUS_EXCEPTION_SLAVE_BUSY);
             return;
         } else if (ret32 == WRITE_ERR_DEVICE) {
