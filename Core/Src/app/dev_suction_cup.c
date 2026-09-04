@@ -35,7 +35,7 @@ int dev_suction_cup_init(void)
     }
     osDelay(10);
     /*设置最大真空度*/
-    if (suction_cup_set_max_vacuum(10) != 0) {
+    if (suction_cup_set_max_vacuum(5) != 0) {
         ret = -1;
     }
     osDelay(10);

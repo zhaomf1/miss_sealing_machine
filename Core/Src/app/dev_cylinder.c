@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #define SUCTION_CYL_PUSH_FORCE_PERCENT    15U
-#define SUCTION_CYL_PUSH_LENGTH_001MM    100U
+#define SUCTION_CYL_PUSH_LENGTH_001MM      0U
 #define SUCTION_CYL_PUSH_SPEED_PERCENT    10U
 
 /* ------------------------------------------------------------------ *
@@ -55,7 +55,7 @@ int dev_cylinder_init(void)
         printf("[CYL] Suction cylinder push config FAIL\r\n");
         return -1;
     }
-    printf("[CYL] Suction push config: dir=forward force=%u%% length=%u speed=%u%%\r\n",
+    printf("[CYL] Suction push disabled: dir=forward force=%u%% length=%u speed=%u%%\r\n",
            SUCTION_CYL_PUSH_FORCE_PERCENT, SUCTION_CYL_PUSH_LENGTH_001MM,
            SUCTION_CYL_PUSH_SPEED_PERCENT);
 

@@ -127,17 +127,17 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 /* ---- 调试动作超时 (ms) ---- */
 #define TIMEOUT_CYL_MOVE      10000
 #define TIMEOUT_SUCTION_CUP    5000
-#define SUCTION_CYL_DOWN_SETTLE_MS      150
+#define SUCTION_CYL_DOWN_SETTLE_MS     1000
 #define SUCTION_CYL_DOWN_POLL_MS        100
 #define SUCTION_CUP_RELEASE_SETTLE_MS    150
 #define WORKFLOW_STEP_SETTLE_MS          300
-#define SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM 100
+#define SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM   0U
 
 /* ---- 复合动作重试次数 ---- */
 #define COMPOUND_ACTION_MAX_RETRIES  3
 
 /* ---- 复合动作电缸下落距离 (0.01mm) ---- */
-#define SUCTION_CYL_SUCK_POS   5200  // 吸膜点：吸膜操作时电缸下落距离 
+#define SUCTION_CYL_SUCK_POS   5000  // 吸膜点：吸膜操作时电缸下落距离
 #define SUCTION_CYL_PAVE_POS   1200  // 铺膜点：铺膜操作时电缸下落距离 
 #define SEAL_CYL_DROP_DISTANCE  5000  // 封膜电缸下落距离 
 
@@ -382,7 +382,7 @@ static void cmd_suction_action(uint16_t value)
                                    SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM);
     if (ret != 0) {
         g_fault_status |= FAULT_BIT_SUCK_CYL;
-        printf("[CMD_0x0061] Step2 enable push segment FAIL ret=%d\r\n", ret);
+        printf("[CMD_0x0061] Step2 disable push segment FAIL ret=%d\r\n", ret);
         goto done;
     }
     ret = -1;
@@ -618,26 +618,37 @@ static void cmd_seal_action(uint16_t value)
     }
     g_fault_status &= ~FAULT_BIT_SEAL_CYL;
 
-    /* Step 3: 保压等待（读取压膜时间寄存器值），上限 60s 防溢出 */
+    /* Step 3: 释放吸盘，等待完全释放 */
+    ret = suction_cup_release();
+    if (ret != 0 || suction_cup_wait_release(TIMEOUT_SUCTION_CUP) != 0) {
+        g_fault_status |= FAULT_BIT_SUCTION_CUP;
+        printf("[CMD_0x0063] Step3 Suction cup release FAIL\r\n");
+        goto done;
+    }
+    g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
+    if (delay_interruptible(SUCTION_CUP_RELEASE_SETTLE_MS) != 0) goto done;
+    printf("[CMD_0x0063] Step3 Suction cup release OK\r\n");
+
+    /* Step 4: 保压等待（读取压膜时间寄存器值），上限 60s 防溢出 */
     if (g_eeprom_press_time > 0) {
         uint32_t hold_ms = (uint32_t)g_eeprom_press_time * 1000;
         if (hold_ms > 60000) hold_ms = 60000;
-        printf("[CMD_0x0063] Step3 Holding for %lums...\r\n", (unsigned long)hold_ms);
+        printf("[CMD_0x0063] Step4 Holding for %lums...\r\n", (unsigned long)hold_ms);
         if (delay_interruptible(hold_ms) != 0) goto done;
     }
 
-    /* Step 4: 封膜电缸移动到0 */
+    /* Step 5: 封膜电缸移动到0 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         ret = cylinder_move_to_wait(CYLINDER_ID_SEAL, 0, TIMEOUT_CYL_MOVE);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
-        printf("[CMD_0x0063] Step4 attempt %d/%d FAIL (ret=%d)\r\n",
+        printf("[CMD_0x0063] Step5 attempt %d/%d FAIL (ret=%d)\r\n",
                attempt + 1, COMPOUND_ACTION_MAX_RETRIES, ret);
     }
     if (ret != 0) {
         g_fault_status |= FAULT_BIT_SEAL_CYL;
-        printf("[CMD_0x0063] Step4 Seal cyl move to 0 FAIL after %d retries\r\n", COMPOUND_ACTION_MAX_RETRIES);
+        printf("[CMD_0x0063] Step5 Seal cyl move to 0 FAIL after %d retries\r\n", COMPOUND_ACTION_MAX_RETRIES);
         goto done;
     }
     g_fault_status &= ~FAULT_BIT_SEAL_CYL;
