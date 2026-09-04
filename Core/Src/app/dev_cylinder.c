@@ -296,13 +296,41 @@ int cylinder_set_io_mode(CylinderId_t id, uint16_t enable)
  * =================================================================== */
 
 #define CYL_POLL_INTERVAL_MS    50   // 轮询间隔
-#define CYL_CMD_SETTLE_MS       50   // 给电缸控制器刷新运动状态的时间，避免读到上一轮到位状态
 #define CYL_POS_TOLERANCE      20    // 位置到位容差，单位0.01mm，20=0.20mm
-#define CYL_ARRIVED_CONFIRM    1     // 状态到位+位置到位连续确认次数
+#define CYL_ARRIVED_CONFIRM    2     // 状态到位+位置到位连续确认次数
+#define CYL_MOVE_START_DELTA    1    // 与命令前位置相比至少发生的位移
+
+/*
+ * 0x0200~0x0202 必须作为同一份状态快照读取。
+ * 0x0201=1 的含义是“停止且未堵转”，不是“本次命令已到目标位置”。
+ */
+typedef struct {
+    CylinderHomeState_t home_state;
+    CylinderMotionState_t motion_state;
+    uint16_t position_001mm;
+} CylinderStatusSnapshot_t;
 
 static uint16_t cylinder_abs_diff_u16(uint16_t a, uint16_t b)
 {
     return (a >= b) ? (uint16_t)(a - b) : (uint16_t)(b - a);
+}
+
+static int cylinder_read_status_snapshot(CylinderId_t id, CylinderStatusSnapshot_t *snapshot)
+{
+    uint16_t regs[3];
+    int ret;
+
+    if (snapshot == NULL) {
+        return MODBUS_ERR_PARM;
+    }
+
+    ret = modbus_read_holding_registers(cylinder_id_to_addr(id), 0x0200, 3, regs);
+    if (ret == MODBUS_OK) {
+        snapshot->home_state = (CylinderHomeState_t)regs[0];
+        snapshot->motion_state = (CylinderMotionState_t)regs[1];
+        snapshot->position_001mm = regs[2];
+    }
+    return ret;
 }
 
 /* ---- 单次查询 ---- */
@@ -385,58 +413,57 @@ int cylinder_wait_arrived(CylinderId_t id, uint32_t timeout_ms)
  * @brief 等待电缸状态到位且当前位置到达目标位置
  * @return 0=目标位置到位, -1=超时, -2=堵转, -3=通讯失败, ACTION_WAIT_CANCELLED=被停止命令取消
  */
-int cylinder_wait_position(CylinderId_t id, uint16_t target_001mm, uint32_t timeout_ms)
+static int cylinder_wait_position(CylinderId_t id, uint16_t target_001mm,
+                                  uint16_t start_position_001mm,
+                                  uint8_t require_motion_started,
+                                  uint32_t timeout_ms)
 {
-    CylinderMotionState_t state = CYLINDER_MOTION_RUNNING;
-    uint16_t position = 0xFFFF;
+    CylinderStatusSnapshot_t snapshot = {
+        CYLINDER_HOME_NOT_STARTED,
+        CYLINDER_MOTION_RUNNING,
+        0xFFFFU
+    };
     uint16_t diff = 0xFFFF;
     uint32_t elapsed = 0;
     uint8_t confirm = 0;
-
-    while (elapsed < CYL_CMD_SETTLE_MS && elapsed < timeout_ms) {
-        if (modbus_reg_is_stop_requested()) {
-            return ACTION_WAIT_CANCELLED;
-        }
-        uint32_t settle_left = CYL_CMD_SETTLE_MS - elapsed;
-        uint32_t timeout_left = timeout_ms - elapsed;
-        uint32_t slice = (settle_left > 50U) ? 50U : settle_left;
-        if (slice > timeout_left) {
-            slice = timeout_left;
-        }
-        osDelay(slice);
-        elapsed += slice;
-    }
+    uint8_t motion_started = (require_motion_started == 0U) ? 1U : 0U;
 
     while (elapsed < timeout_ms) {
         if (modbus_reg_is_stop_requested()) {
             return ACTION_WAIT_CANCELLED;
         }
 
-        int ret = cylinder_read_motion_state(id, &state);
+        int ret = cylinder_read_status_snapshot(id, &snapshot);
         if (ret != MODBUS_OK) {
-            printf("[CYL] id=%d read motion state FAIL ret=%d\r\n", (int)id, ret);
+            printf("[CYL] id=%d read status snapshot FAIL ret=%d\r\n", (int)id, ret);
             return -3;
         }
 
-        ret = cylinder_read_position(id, &position);
-        if (ret != MODBUS_OK) {
-            printf("[CYL] id=%d read position FAIL ret=%d\r\n", (int)id, ret);
-            return -3;
+        diff = cylinder_abs_diff_u16(snapshot.position_001mm, target_001mm);
+
+        if (motion_started == 0U &&
+            (snapshot.motion_state == CYLINDER_MOTION_RUNNING ||
+             cylinder_abs_diff_u16(snapshot.position_001mm,
+                                   start_position_001mm) >= CYL_MOVE_START_DELTA)) {
+            motion_started = 1U;
+            printf("[CYL] id=%d motion started start=%u pos=%u state=%d\r\n",
+                   (int)id, start_position_001mm, snapshot.position_001mm,
+                   (int)snapshot.motion_state);
         }
 
-        diff = cylinder_abs_diff_u16(position, target_001mm);
-
-        if (state == CYLINDER_MOTION_STALLED) {
+        if (snapshot.motion_state == CYLINDER_MOTION_STALLED) {
             printf("[CYL] id=%d stalled! target=%u pos=%u diff=%u\r\n",
-                   (int)id, target_001mm, position, diff);
+                   (int)id, target_001mm, snapshot.position_001mm, diff);
             return -2;
         }
 
-        if (state == CYLINDER_MOTION_ARRIVED && diff <= CYL_POS_TOLERANCE) {
+        if (motion_started != 0U &&
+            snapshot.motion_state == CYLINDER_MOTION_ARRIVED &&
+            diff <= CYL_POS_TOLERANCE) {
             confirm++;
             if (confirm >= CYL_ARRIVED_CONFIRM) {
                 printf("[CYL] id=%d arrived target=%u pos=%u diff=%u\r\n",
-                       (int)id, target_001mm, position, diff);
+                       (int)id, target_001mm, snapshot.position_001mm, diff);
                 return 0;
             }
         } else {
@@ -447,8 +474,9 @@ int cylinder_wait_position(CylinderId_t id, uint16_t target_001mm, uint32_t time
         elapsed += CYL_POLL_INTERVAL_MS;
     }
 
-    printf("[CYL] id=%d wait target timeout target=%u pos=%u diff=%u state=%d (%lums)\r\n",
-           (int)id, target_001mm, position, diff, (int)state, timeout_ms);
+    printf("[CYL] id=%d wait target timeout target=%u start=%u pos=%u diff=%u state=%d started=%u (%lums)\r\n",
+           (int)id, target_001mm, start_position_001mm, snapshot.position_001mm,
+           diff, (int)snapshot.motion_state, motion_started, timeout_ms);
     return -1;
 }
 
@@ -457,40 +485,91 @@ int cylinder_wait_position(CylinderId_t id, uint16_t target_001mm, uint32_t time
  */
 int cylinder_move_to_wait(CylinderId_t id, uint16_t position_001mm, uint32_t timeout_ms)
 {
-    int ret = cylinder_move_to(id, position_001mm);
+    CylinderStatusSnapshot_t snapshot;
+    uint16_t start_diff;
+    uint8_t require_motion_started;
+    int ret = cylinder_read_status_snapshot(id, &snapshot);
+
+    /* 工作阶段的绝对位置移动必须建立在已回零的坐标系上。 */
+    if (ret != MODBUS_OK) {
+        printf("[CYL] id=%d pre-move status snapshot FAIL ret=%d\r\n", (int)id, ret);
+        return -3;
+    }
+    if (snapshot.home_state != CYLINDER_HOME_SUCCESS) {
+        printf("[CYL] id=%d move rejected: home=%d motion=%d pos=%u\r\n",
+               (int)id, (int)snapshot.home_state, (int)snapshot.motion_state,
+               snapshot.position_001mm);
+        return -1;
+    }
+
+    start_diff = cylinder_abs_diff_u16(snapshot.position_001mm, position_001mm);
+    require_motion_started = (start_diff > CYL_POS_TOLERANCE) ? 1U : 0U;
+
+    ret = cylinder_move_to(id, position_001mm);
     if (ret != MODBUS_OK) {
         printf("[CYL] id=%d move cmd FAIL target=%u ret=%d\r\n",
                (int)id, position_001mm, ret);
         return -3;
     }
 
-    return cylinder_wait_position(id, position_001mm, timeout_ms);
+    return cylinder_wait_position(id, position_001mm,
+                                  snapshot.position_001mm,
+                                  require_motion_started, timeout_ms);
 }
 
 /**
  * @brief 阻塞等待电缸回零完成
  * @return 0=回零成功, -1=超时, -2=通讯失败
+ *
+ * 回零完成只能由 0x0200=1 证明；0x0201=1 仅表示停止无堵转，
+ * 0x0202 为零也不能证明已建立机械基准。
  */
 int cylinder_wait_home(CylinderId_t id, uint32_t timeout_ms)
 {
-    CylinderHomeState_t state;
+    CylinderStatusSnapshot_t snapshot = {
+        CYLINDER_HOME_NOT_STARTED,
+        CYLINDER_MOTION_RUNNING,
+        0xFFFFU
+    };
     uint32_t elapsed = 0;
+    uint8_t home_started = 0;
+    int last_home_state = -1;
+    int last_motion_state = -1;
 
     while (elapsed < timeout_ms) {
         if (modbus_reg_is_stop_requested()) {
             return ACTION_WAIT_CANCELLED;
         }
-        int ret = cylinder_read_home_state(id, &state);
+        int ret = cylinder_read_status_snapshot(id, &snapshot);
         if (ret != MODBUS_OK) {
-            return -2;  // 通讯失败
+            return -2;
         }
-        if (state == CYLINDER_HOME_SUCCESS) {
-            return 0;   // 回零成功
+
+        if (last_home_state != (int)snapshot.home_state ||
+            last_motion_state != (int)snapshot.motion_state) {
+            printf("[CYL] id=%d home wait: home=%d motion=%d pos=%u (%lums)\r\n",
+                   (int)id, (int)snapshot.home_state, (int)snapshot.motion_state,
+                   snapshot.position_001mm, elapsed);
+            last_home_state = (int)snapshot.home_state;
+            last_motion_state = (int)snapshot.motion_state;
+        }
+
+        if (snapshot.home_state == CYLINDER_HOME_IN_PROGRESS) {
+            home_started = 1;
+        }
+
+        if (home_started && snapshot.home_state == CYLINDER_HOME_SUCCESS) {
+            printf("[CYL] id=%d home OK state=%d motion=%d pos=%u\r\n",
+                   (int)id, (int)snapshot.home_state, (int)snapshot.motion_state,
+                   snapshot.position_001mm);
+            return 0;
         }
         osDelay(CYL_POLL_INTERVAL_MS);
         elapsed += CYL_POLL_INTERVAL_MS;
     }
 
-    printf("[CYL] id=%d wait home timeout (%lums)\r\n", (int)id, timeout_ms);
+    printf("[CYL] id=%d wait home timeout started=%u home=%d motion=%d pos=%u (%lums)\r\n",
+           (int)id, home_started, (int)snapshot.home_state,
+           (int)snapshot.motion_state, snapshot.position_001mm, timeout_ms);
     return -1;
 }

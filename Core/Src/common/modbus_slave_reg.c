@@ -133,6 +133,7 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define TIMEOUT_SUCTION_CUP    5000
 #define SUCTION_CYL_DOWN_SETTLE_MS      150
 #define SUCTION_CYL_DOWN_POLL_MS        100
+#define SUCTION_CYL_DOWN_START_MOVE_001MM 100
 #define SUCTION_CUP_RELEASE_SETTLE_MS    150
 #define WORKFLOW_STEP_SETTLE_MS          300
 #define SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM 100
@@ -306,19 +307,36 @@ static void workflow_log_elapsed(const char *name, uint32_t elapsed_ms, const ch
            (unsigned long)(elapsed_ms % 1000U), result);
 }
 
-/* 吸膜下压以电缸运动状态判定，不比较实际位置。 */
+/*
+ * 吸膜下压以电缸状态判定，不要求到达固定位置。
+ *
+ * 5200 是最大安全行程：到达该位置或低推力堵转都代表下压完成。
+ * 必须先确认本次命令已启动，避免把上一动作遗留的 ARRIVED 状态误判为完成。
+ */
 static int suck_cyl_move_down_wait_stop(uint16_t position)
 {
     CylinderMotionState_t state;
-    uint16_t actual_position;
+    uint16_t start_position = 0;
+    uint16_t actual_position = 0;
     uint32_t elapsed = 0;
-    int ret = cylinder_move_to(CYLINDER_ID_SUCK, position);
+    uint8_t motion_started = 0;
+    int ret;
+
+    ret = cylinder_read_position(CYLINDER_ID_SUCK, &start_position);
+    if (ret != 0) {
+        printf("[CMD_0x0061] Step2 Suck cyl start pos read FAIL ret=%d\r\n", ret);
+        return -3;
+    }
+
+    ret = cylinder_move_to(CYLINDER_ID_SUCK, position);
 
     if (ret != 0) {
         printf("[CMD_0x0061] Step2 Suck cyl move cmd FAIL target=%u ret=%d\r\n",
                position, ret);
         return -3;
     }
+    printf("[CMD_0x0061] Step2 Suck cyl down cmd target=%u start_pos=%u\r\n",
+           position, start_position);
 
     if (delay_interruptible(SUCTION_CYL_DOWN_SETTLE_MS) != 0) {
         return ACTION_WAIT_CANCELLED;
@@ -331,17 +349,32 @@ static int suck_cyl_move_down_wait_stop(uint16_t position)
             printf("[CMD_0x0061] Step2 Suck cyl state read FAIL ret=%d\r\n", ret);
             return -3;
         }
-        if (state == CYLINDER_MOTION_ARRIVED || state == CYLINDER_MOTION_STALLED) {
-            if (cylinder_read_position(CYLINDER_ID_SUCK, &actual_position) == 0) {
-                printf("[CMD_0x0061] Step2 Suck cyl down complete target=%u pos=%u state=%d (%lums)\r\n",
-                       position, actual_position, (int)state, elapsed);
-            } else {
-                printf("[CMD_0x0061] Step2 Suck cyl down complete target=%u pos=READ_FAIL state=%d (%lums)\r\n",
-                       position, (int)state, elapsed);
-            }
+
+        ret = cylinder_read_position(CYLINDER_ID_SUCK, &actual_position);
+        if (ret != 0) {
+            printf("[CMD_0x0061] Step2 Suck cyl pos read FAIL ret=%d\r\n", ret);
+            return -3;
+        }
+
+        if (!motion_started &&
+            (state == CYLINDER_MOTION_RUNNING ||
+             (actual_position >= start_position &&
+              (uint16_t)(actual_position - start_position) >= SUCTION_CYL_DOWN_START_MOVE_001MM))) {
+            motion_started = 1;
+            printf("[CMD_0x0061] Step2 Suck cyl motion started start_pos=%u pos=%u state=%d (%lums)\r\n",
+                   start_position, actual_position, (int)state, elapsed);
+        }
+
+        if (motion_started &&
+            (state == CYLINDER_MOTION_ARRIVED || state == CYLINDER_MOTION_STALLED)) {
+            printf("[CMD_0x0061] Step2 Suck cyl down complete target=%u pos=%u state=%d (%lums)\r\n",
+                   position, actual_position, (int)state, elapsed);
             return 0;
         }
-        if (state != CYLINDER_MOTION_RUNNING) {
+
+        if (state != CYLINDER_MOTION_RUNNING &&
+            state != CYLINDER_MOTION_ARRIVED &&
+            state != CYLINDER_MOTION_STALLED) {
             printf("[CMD_0x0061] Step2 Suck cyl invalid state=%d\r\n", (int)state);
             return -1;
         }
@@ -351,8 +384,9 @@ static int suck_cyl_move_down_wait_stop(uint16_t position)
         elapsed += SUCTION_CYL_DOWN_POLL_MS;
     }
 
-    printf("[CMD_0x0061] Step2 Suck cyl down timeout target=%u (%ums)\r\n",
-           position, TIMEOUT_CYL_MOVE);
+    printf("[CMD_0x0061] Step2 Suck cyl down timeout target=%u start_pos=%u pos=%u state=%d started=%u (%ums)\r\n",
+           position, start_position, actual_position, (int)state,
+           motion_started, TIMEOUT_CYL_MOVE);
     return -1;
 }
 

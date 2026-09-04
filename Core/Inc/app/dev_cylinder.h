@@ -63,9 +63,10 @@ int dev_cylinder_init(void);
  * ------------------------------------------------------------------ */
 
 /**
- * @brief 检查电缸是否已到达目标位置（单次查询）
+ * @brief 查询电缸是否已停止且未堵转（单次查询）
  * @param id 电缸 ID
- * @return true=已到位, false=运动中/堵转/通讯失败
+ * @return true=停止且未堵转, false=运动中/堵转/通讯失败
+ * @note 不校验目标位置；需要确认目标位置时请使用 cylinder_move_to_wait()。
  */
 bool cylinder_is_arrived(CylinderId_t id);
 
@@ -91,10 +92,11 @@ bool cylinder_is_stalled(CylinderId_t id);
 bool cylinder_is_homed(CylinderId_t id);
 
 /**
- * @brief 阻塞等待电缸运动到目标位置
+ * @brief 阻塞等待电缸停止且未堵转
  * @param id 电缸 ID
  * @param timeout_ms 超时时间(ms), 建议 >= 5000
- * @return 0=已到位, -1=超时, -2=堵转, -3=通讯失败
+ * @return 0=停止且未堵转, -1=超时, -2=堵转, -3=通讯失败
+ * @note 不校验目标位置；新代码应优先使用 cylinder_move_to_wait()。
  */
 int cylinder_wait_arrived(CylinderId_t id, uint32_t timeout_ms);
 
@@ -105,15 +107,6 @@ int cylinder_wait_arrived(CylinderId_t id, uint32_t timeout_ms);
  * @return 0=回零成功, -1=超时, -2=通讯失败
  */
 int cylinder_wait_home(CylinderId_t id, uint32_t timeout_ms);
-
-/**
- * @brief 等待电缸运动状态到位，并确认实际位置已到目标位置
- * @param id 电缸 ID
- * @param target_001mm 目标位置，单位 0.01mm
- * @param timeout_ms 超时时间，单位 ms
- * @return 0=目标位置到位, -1=超时, -2=堵转, -3=通信失败
- */
-int cylinder_wait_position(CylinderId_t id, uint16_t target_001mm, uint32_t timeout_ms);
 
 /**
  * @brief 下发目标位置命令，并等待电缸实际到达目标位置
