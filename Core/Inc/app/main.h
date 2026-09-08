@@ -50,8 +50,8 @@ extern uint8_t modbus_rtu_rx_buf[MODBUS_BUFFER_SIZE],modbus_rtu_rx_backup[MODBUS
 
 /* 固件版本：0x0000~0x0001 返回 0x00主版本次版本微版本。 */
 #define FW_VERSION_MAJOR  1U
-#define FW_VERSION_MINOR  2U
-#define FW_VERSION_MINI   4U
+#define FW_VERSION_MINOR  3U
+#define FW_VERSION_MINI   0U
 #define FW_VERSION_PACKED \
     (((uint32_t)FW_VERSION_MAJOR << 16) | \
      ((uint32_t)FW_VERSION_MINOR << 8)  | \
