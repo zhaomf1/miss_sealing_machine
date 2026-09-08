@@ -17,6 +17,8 @@
 
 #define MODBUS_SLAVE_ADDR         0x01
 #define MODBUS_MAX_REG_ADDR       0x00A1  // 最大寄存器地址 + 1
+#define REG_FILM_QUANTITY_UPDATE  0x0082
+#define REG_FILM_QUANTITY_QUERY   0x0084
 /* modbus协议寄存器表 */
 static const ModbusRegDef_t reg_map[] = {
     /* 2.1 系统命令 */
@@ -51,6 +53,8 @@ static const ModbusRegDef_t reg_map[] = {
     {0x0078, REG_ACCESS_RW, REG_TYPE_U16},   // 温度值
     {0x0079, REG_ACCESS_RW, REG_TYPE_U16},   // 压膜时间
     {0x0080, REG_ACCESS_RO, REG_TYPE_U32},   // 总封膜次数
+    {REG_FILM_QUANTITY_UPDATE, REG_ACCESS_WO, REG_TYPE_U32}, // 当前膜数量更新
+    {REG_FILM_QUANTITY_QUERY,  REG_ACCESS_RO, REG_TYPE_U32}, // 剩余膜数量查询
 
     /* 调试动作执行状态 */
     {0x00A0, REG_ACCESS_RO, REG_TYPE_U16},   // 调试动作执行状态
@@ -149,6 +153,7 @@ static uint32_t g_eeprom_get_place;  // 取放孔板位置 (0x0076)
 static uint16_t g_eeprom_temp_ctrl;  // 温度值 (0x0078)
 static uint16_t g_eeprom_press_time; // 压膜时间 (0x0079)
 static uint32_t g_eeprom_frequency;  // 总封膜次数 (0x0080)
+static uint32_t g_eeprom_remaining_film; // 剩余膜数量 (0x0084)
 
 
 /* ===================================================================
@@ -165,8 +170,51 @@ static const char *eeprom_param_name(uint16_t reg_addr)
         case 0x0078: return "temperature_setpoint";
         case 0x0079: return "press_time";
         case 0x0080: return "seal_count";
+        case REG_FILM_QUANTITY_UPDATE: return "remaining_film";
         default:     return "unknown";
     }
+}
+
+static void shadow_set_u32(uint16_t start_addr, uint32_t value)
+{
+    shadow[start_addr] = (uint16_t)((value >> 16) & 0xFFFFU);
+    shadow[start_addr + 1U] = (uint16_t)(value & 0xFFFFU);
+}
+
+static int remaining_film_store(uint32_t value)
+{
+    printf("[PARAM_SAVE] begin reg=0x%04X name=%s value=%lu\r\n",
+           REG_FILM_QUANTITY_UPDATE, eeprom_param_name(REG_FILM_QUANTITY_UPDATE),
+           (unsigned long)value);
+    if (eeprom_write_u32(EEPROM_REMAINING_FILM, value) != HAL_OK) {
+        printf("[PARAM_SAVE] FAIL reg=0x%04X name=%s value=%lu\r\n",
+               REG_FILM_QUANTITY_UPDATE, eeprom_param_name(REG_FILM_QUANTITY_UPDATE),
+               (unsigned long)value);
+        return WRITE_ERR_DEVICE;
+    }
+
+    g_eeprom_remaining_film = value;
+    shadow_set_u32(REG_FILM_QUANTITY_QUERY, value);
+    printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
+           REG_FILM_QUANTITY_UPDATE, eeprom_param_name(REG_FILM_QUANTITY_UPDATE),
+           (unsigned long)value);
+    return WRITE_OK;
+}
+
+static int workflow_consume_film(void)
+{
+    if (g_eeprom_remaining_film == 0U) {
+        printf("[FILM] Consume rejected: remaining=0\r\n");
+        return WRITE_ERR_ILLEGAL;
+    }
+
+    if (remaining_film_store(g_eeprom_remaining_film - 1U) != WRITE_OK) {
+        return WRITE_ERR_DEVICE;
+    }
+
+    printf("[FILM] Consumed=1 remaining=%lu\r\n",
+           (unsigned long)g_eeprom_remaining_film);
+    return WRITE_OK;
 }
 
 static void action_set_result(uint8_t reg_addr, uint8_t result)
@@ -1015,8 +1063,17 @@ static void cmd_start_workflow(void)
     uint32_t step_start_tick;
 
     g_stop_requested = 0;
-    modbus_reg_set_system_state(SYS_STATE_RUNNING);
     workflow_start_tick = osKernelGetTickCount();
+
+    if (g_eeprom_remaining_film == 0U) {
+        printf("[WORKFLOW] Start rejected: remaining film=0\r\n");
+        modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
+        action_set_result(0x10, ACT_RESULT_FAILURE);
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "FAILED");
+        return;
+    }
+
+    modbus_reg_set_system_state(SYS_STATE_RUNNING);
     printf("[WORKFLOW] === Start ===\r\n");
 
     /* Step 1: 0x61 吸膜动作 */
@@ -1040,6 +1097,14 @@ static void cmd_start_workflow(void)
         return;
     }
     workflow_log_elapsed("Step1 Suction", osKernelGetTickCount() - step_start_tick, "SUCCESS");
+    if (workflow_consume_film() != WRITE_OK) {
+        printf("[WORKFLOW] Save remaining film FAIL\r\n");
+        modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
+        cmd_stop_workflow();
+        action_set_result(0x10, ACT_RESULT_FAILURE);
+        workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "FAILED");
+        return;
+    }
     if (delay_interruptible(WORKFLOW_STEP_SETTLE_MS) != 0) {
         cmd_stop_workflow();
         workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "STOPPED");
@@ -1198,12 +1263,17 @@ void modbus_reg_eeprom_cache_init(void)
         shadow[0x0080] = (uint16_t)((v >> 16) & 0xFFFF);
         shadow[0x0081] = (uint16_t)(v & 0xFFFF);
     }
+    if (eeprom_read_u32(EEPROM_REMAINING_FILM, &v) == HAL_OK) {
+        /* A blank AT24C02 contains 0xFFFFFFFF; treat it as no film configured. */
+        g_eeprom_remaining_film = (v == 0xFFFFFFFFUL) ? 0U : v;
+        shadow_set_u32(REG_FILM_QUANTITY_QUERY, g_eeprom_remaining_film);
+    }
 
-    printf("[EEPROM] Cache init: zero=%lu suck_seal=%lu pave=%lu get_place=%lu temp=%u press=%us freq=%lu\r\n",
+    printf("[EEPROM] Cache init: zero=%lu suck_seal=%lu pave=%lu get_place=%lu temp=%u press=%us freq=%lu film=%lu\r\n",
            (unsigned long)g_eeprom_zero, (unsigned long)g_eeprom_suck_seal,
            (unsigned long)g_eeprom_pave, (unsigned long)g_eeprom_get_place,
            g_eeprom_temp_ctrl, g_eeprom_press_time,
-           (unsigned long)g_eeprom_frequency);
+           (unsigned long)g_eeprom_frequency, (unsigned long)g_eeprom_remaining_film);
 }
 
 
@@ -1336,6 +1406,7 @@ int modbus_reg_read_value(uint16_t addr, uint16_t *out_value)
         case 0x0078:
         case 0x0079:
         case 0x0080:   // 总封膜次数 (uint32, 低16位)
+        case REG_FILM_QUANTITY_QUERY: // 剩余膜数量 (uint32, 低16位)
             *out_value = shadow[addr];
             break;
 
@@ -1576,6 +1647,14 @@ int modbus_reg_write32_execute(uint16_t start_addr, uint32_t value)
             printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
                    start_addr, eeprom_param_name(start_addr), (unsigned long)value);
             break;
+        case REG_FILM_QUANTITY_UPDATE:
+            if (g_system_state == SYS_STATE_RUNNING ||
+                g_system_state == SYS_STATE_INITIALIZING) {
+                printf("[REG_0x%04X] System busy, state=0x%04X\r\n",
+                       REG_FILM_QUANTITY_UPDATE, g_system_state);
+                return WRITE_ERR_BUSY;
+            }
+            return remaining_film_store(value);
         default: return -1;
     }
     return 0;

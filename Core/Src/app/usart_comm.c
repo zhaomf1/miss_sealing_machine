@@ -138,7 +138,7 @@ static void modbus_handle_write_single(uint8_t *rx, uint16_t rx_len)
     }
 
     int write_ret = modbus_reg_write_execute(addr, value);
-    if (write_ret == WRITE_ERR_QUEUE_FULL) {
+    if (write_ret == WRITE_ERR_QUEUE_FULL || write_ret == WRITE_ERR_BUSY) {
         modbus_send_exception(0x06, MODBUS_EXCEPTION_SLAVE_BUSY);
         return;
     } else if (write_ret == WRITE_ERR_DEVICE) {
@@ -204,7 +204,7 @@ static void modbus_handle_write_multiple(uint8_t *rx, uint16_t rx_len)
                        | ((uint32_t)rx[9] << 8)  | rx[10];
 
         int ret32 = modbus_reg_write32_execute(start_addr, val32);
-        if (ret32 == WRITE_ERR_QUEUE_FULL) {
+        if (ret32 == WRITE_ERR_QUEUE_FULL || ret32 == WRITE_ERR_BUSY) {
             modbus_send_exception(0x10, MODBUS_EXCEPTION_SLAVE_BUSY);
             return;
         } else if (ret32 == WRITE_ERR_DEVICE) {
@@ -219,7 +219,7 @@ static void modbus_handle_write_multiple(uint8_t *rx, uint16_t rx_len)
         uint16_t val16 = ((uint16_t)rx[7] << 8) | rx[8];
 
         int ret16 = modbus_reg_write_execute(start_addr, val16);
-        if (ret16 == WRITE_ERR_QUEUE_FULL) {
+        if (ret16 == WRITE_ERR_QUEUE_FULL || ret16 == WRITE_ERR_BUSY) {
             modbus_send_exception(0x10, MODBUS_EXCEPTION_SLAVE_BUSY);
             return;
         } else if (ret16 == WRITE_ERR_DEVICE) {

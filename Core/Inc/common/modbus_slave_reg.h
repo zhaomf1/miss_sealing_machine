@@ -34,6 +34,7 @@
 #define WRITE_ERR_ILLEGAL        -1
 #define WRITE_ERR_QUEUE_FULL     -2
 #define WRITE_ERR_DEVICE         -3
+#define WRITE_ERR_BUSY           -5
 
 /* 外设阻塞等待被结束流程命令取消 */
 #define ACTION_WAIT_CANCELLED     -4

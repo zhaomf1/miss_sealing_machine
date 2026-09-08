@@ -21,6 +21,7 @@ typedef enum{
 #define EEPROM_TEMP_CTRL        0x10   //温控参数
 #define EEPROM_PRESS_TIME       0x14   //压膜时间
 #define EEPROM_FREQUENCY        0x18   //总封膜次数
+#define EEPROM_REMAINING_FILM   0x1C   //剩余膜数量
 
 //EEPROM 读写接口
 HAL_StatusTypeDef eeprom_read_u32(uint16_t addr, uint32_t *data);
