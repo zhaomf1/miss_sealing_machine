@@ -353,6 +353,31 @@ static int suck_cyl_return_to_zero(void)
     return ret;
 }
 
+/*
+ * The initial hold confirmation only proves the membrane was picked up.
+ * Recheck at transport boundaries so a dropped membrane cannot reach sealing.
+ */
+static int suction_cup_verify_holding(const char *checkpoint)
+{
+    SuctionCupState_t state = SUCTION_CUP_RELEASE;
+    int ret = suction_cup_read_state(&state);
+
+    if (ret != 0) {
+        printf("[SUC] Holding check FAIL at %s: state read ret=%d\r\n",
+               checkpoint, ret);
+        return ret;
+    }
+
+    if (state != SUCTION_CUP_HOLDING) {
+        printf("[SUC] Holding check FAIL at %s: state=%d\r\n",
+               checkpoint, (int)state);
+        return -1;
+    }
+
+    printf("[SUC] Holding check OK at %s\r\n", checkpoint);
+    return 0;
+}
+
 
 /* ===================================================================
  *          复合动作实现 (0x0060~0x0064)
@@ -491,8 +516,18 @@ static void cmd_suction_action(uint16_t value)
         printf("[CMD_0x0061] Step4 Suck cyl move to 0 FAIL after %d retries\r\n", COMPOUND_ACTION_MAX_RETRIES);
         goto done;
     }
-    suck_cyl_commanded = 0;
     g_fault_status &= ~FAULT_BIT_SUCK_CYL;
+
+    /* 膜在抬升过程中可能掉落，归零后必须再次确认仍被吸住。 */
+    ret = suction_cup_verify_holding("after suck cylinder return");
+    if (ret != 0) {
+        g_fault_status |= FAULT_BIT_SUCTION_CUP;
+        printf("[CMD_0x0061] Step4 suction cup lost membrane after return\r\n");
+        goto done;
+    }
+    g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
+
+    suck_cyl_commanded = 0;
 
     result = ACT_RESULT_SUCCESS;
 
@@ -543,6 +578,15 @@ static void cmd_lay_film_action(uint16_t value)
     }
     g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
 
+    /* 富俊横移中若膜掉落，禁止继续下压和释放。 */
+    ret = suction_cup_verify_holding("after Fujun move to pave");
+    if (ret != 0) {
+        g_fault_status |= FAULT_BIT_SUCTION_CUP;
+        printf("[CMD_0x0062] Step1 suction cup lost membrane during transfer\r\n");
+        goto done;
+    }
+    g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
+
     /* Step 2: 吸膜电缸下落到铺膜点 */
     ret = cylinder_set_push_length(CYLINDER_ID_SUCK, 0);
     if (ret != 0) {
@@ -564,6 +608,15 @@ static void cmd_lay_film_action(uint16_t value)
         goto done;
     }
     g_fault_status &= ~FAULT_BIT_SUCK_CYL;
+
+    /* 释放前最后确认，防止铺膜下压期间膜已掉落仍继续封膜。 */
+    ret = suction_cup_verify_holding("before pave release");
+    if (ret != 0) {
+        g_fault_status |= FAULT_BIT_SUCTION_CUP;
+        printf("[CMD_0x0062] Step2 suction cup lost membrane before release\r\n");
+        goto done;
+    }
+    g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
 
     /* Step 3: 吸盘释放，等待完全释放 */
     ret = -1;
