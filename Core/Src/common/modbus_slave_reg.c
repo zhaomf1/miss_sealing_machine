@@ -137,7 +137,6 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 /* 吸住确认后、带膜抬升前的建压等待：让泵把真空锚定在设定区间 */
 #define SUCTION_CUP_HOLD_SETTLE_MS      300
 #define WORKFLOW_STEP_SETTLE_MS          300
-#define SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM   0U
 #define HOLD_VERIFY_DEBOUNCE_MS          250   // 掉落复核去抖等待，防瞬时真空抖动误判
 /* 带膜回零降速：抬升冲击是膜脱落的诱因之一，慢速回升后恢复工作速度 */
 #define SUCTION_CYL_RETURN_SPEED_PERCENT 30U
@@ -505,14 +504,9 @@ static void cmd_suction_action(uint16_t value)
     }
     g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
 
-    /* Step 2: 吸膜电缸下落到吸膜点 */
-    ret = cylinder_set_push_length(CYLINDER_ID_SUCK,
-                                   SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM);
-    if (ret != 0) {
-        g_fault_status |= FAULT_BIT_SUCK_CYL;
-        printf("[CMD_0x0061] Step2 disable push segment FAIL ret=%d\r\n", ret);
-        goto done;
-    }
+    /* Step 2: 吸膜电缸下落到吸膜点
+     * 不再禁用推压段：init 已配置末端5mm限力段(15%力/10%速)，
+     * 吸嘴以恒定力接触膜面，压深不再随膜堆高度漂移。 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         suck_cyl_commanded = 1;

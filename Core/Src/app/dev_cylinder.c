@@ -7,7 +7,12 @@
 #include <stdio.h>
 
 #define SUCTION_CYL_PUSH_FORCE_PERCENT    15U
-#define SUCTION_CYL_PUSH_LENGTH_001MM      0U
+/*
+ * 吸膜下压用推压段(行程末端限力段)：目标5000前最后5mm以15%力/10%速接触膜面，
+ * 压深由力决定、不再随膜堆高度漂移。实测膜面高度4687~5000(堆满→将空)，
+ * 5mm推压段可覆盖全程。吸膜电缸的其余动作(回零/铺膜)均显式写0禁用。
+ */
+#define SUCTION_CYL_PUSH_LENGTH_001MM    500U
 #define SUCTION_CYL_PUSH_SPEED_PERCENT    10U
 
 /* ------------------------------------------------------------------ *
@@ -56,7 +61,7 @@ int dev_cylinder_init(void)
         printf("[CYL] Suction cylinder push config FAIL\r\n");
         return -1;
     }
-    printf("[CYL] Suction push disabled: dir=forward force=%u%% length=%u speed=%u%% max_speed=%u%%\r\n",
+    printf("[CYL] Suction push segment: dir=forward force=%u%% length=%u(0.01mm) speed=%u%% max_speed=%u%%\r\n",
            SUCTION_CYL_PUSH_FORCE_PERCENT, SUCTION_CYL_PUSH_LENGTH_001MM,
            SUCTION_CYL_PUSH_SPEED_PERCENT, SUCTION_CYL_WORK_SPEED_PERCENT);
 
