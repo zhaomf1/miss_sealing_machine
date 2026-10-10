@@ -134,8 +134,13 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define SUCTION_CYL_DOWN_SETTLE_MS     1000
 #define SUCTION_CYL_DOWN_POLL_MS        100
 #define SUCTION_CUP_RELEASE_SETTLE_MS    150
+/* 吸住确认后、带膜抬升前的建压等待：让泵把真空锚定在设定区间 */
+#define SUCTION_CUP_HOLD_SETTLE_MS      300
 #define WORKFLOW_STEP_SETTLE_MS          300
 #define SUCTION_CYL_CONTACT_PUSH_LENGTH_001MM   0U
+#define HOLD_VERIFY_DEBOUNCE_MS          250   // 掉落复核去抖等待，防瞬时真空抖动误判
+/* 带膜回零降速：抬升冲击是膜脱落的诱因之一，慢速回升后恢复工作速度 */
+#define SUCTION_CYL_RETURN_SPEED_PERCENT 30U
 
 /* ---- 复合动作重试次数 ---- */
 #define COMPOUND_ACTION_MAX_RETRIES  3
@@ -341,6 +346,13 @@ static int suck_cyl_return_to_zero(void)
     }
     printf("[CMD_0x0061] Push segment disabled before return to 0\r\n");
 
+    /* 带膜抬升：降速减少剥离/惯性冲击，到位后恢复工作速度 */
+    if (cylinder_set_max_speed(CYLINDER_ID_SUCK, SUCTION_CYL_RETURN_SPEED_PERCENT) != 0) {
+        printf("[CMD_0x0061] Set return speed FAIL, keep default\r\n");
+    } else {
+        printf("[CMD_0x0061] Return speed=%u%%\r\n", SUCTION_CYL_RETURN_SPEED_PERCENT);
+    }
+
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
         if (ret == 0 || ret == ACTION_WAIT_CANCELLED) {
@@ -350,12 +362,19 @@ static int suck_cyl_return_to_zero(void)
                attempt + 1, COMPOUND_ACTION_MAX_RETRIES, ret);
     }
 
+    if (cylinder_set_max_speed(CYLINDER_ID_SUCK, SUCTION_CYL_WORK_SPEED_PERCENT) != 0) {
+        printf("[CMD_0x0061] Restore work speed FAIL\r\n");
+    }
+
     return ret;
 }
 
 /*
  * The initial hold confirmation only proves the membrane was picked up.
  * Recheck at transport boundaries so a dropped membrane cannot reach sealing.
+ *
+ * 掉落状态(3)是吸盘侧的锁存态，瞬时真空抖动也会置位。复核读到非吸住态时
+ * 先去抖等待，再以实际真空度判定：真空仍不低于下限视为瞬时抖动并放行。
  */
 static int suction_cup_verify_holding(const char *checkpoint)
 {
@@ -369,8 +388,36 @@ static int suction_cup_verify_holding(const char *checkpoint)
     }
 
     if (state != SUCTION_CUP_HOLDING) {
-        printf("[SUC] Holding check FAIL at %s: state=%d\r\n",
-               checkpoint, (int)state);
+        uint16_t vacuum = 0;
+        int vret;
+
+        if (delay_interruptible(HOLD_VERIFY_DEBOUNCE_MS) != 0) {
+            return ACTION_WAIT_CANCELLED;
+        }
+
+        /* 去抖后状态自行恢复为吸住：纯抖动 */
+        ret = suction_cup_read_state(&state);
+        if (ret == 0 && state == SUCTION_CUP_HOLDING) {
+            printf("[SUC] Holding check OK at %s: state recovered after debounce\r\n",
+                   checkpoint);
+            return 0;
+        }
+
+        /* 状态未恢复但真空度仍达标：锁存误报，放行 */
+        vret = suction_cup_read_vacuum(&vacuum);
+        if (vret == 0 && vacuum >= SUCTION_CUP_MIN_VACUUM) {
+            printf("[SUC] Holding check OK at %s: state=%d vacuum=%u (debounced, min=%u)\r\n",
+                   checkpoint, (int)state, vacuum, SUCTION_CUP_MIN_VACUUM);
+            return 0;
+        }
+
+        if (vret != 0) {
+            printf("[SUC] Holding check FAIL at %s: state=%d vacuum read FAIL ret=%d\r\n",
+                   checkpoint, (int)state, vret);
+        } else {
+            printf("[SUC] Holding check FAIL at %s: state=%d vacuum=%u (min=%u)\r\n",
+                   checkpoint, (int)state, vacuum, SUCTION_CUP_MIN_VACUUM);
+        }
         return -1;
     }
 
@@ -508,6 +555,11 @@ static void cmd_suction_action(uint16_t value)
         goto done;
     }
     g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
+
+    /* 吸住后先建压等待，再开始带膜抬升，可被停止命令打断 */
+    if (delay_interruptible(SUCTION_CUP_HOLD_SETTLE_MS) != 0) {
+        goto done;
+    }
 
     /* Step 4: 吸膜电缸移动到0 */
     ret = suck_cyl_return_to_zero();

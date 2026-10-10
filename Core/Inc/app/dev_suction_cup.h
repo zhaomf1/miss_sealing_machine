@@ -4,6 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* 真空度下限(1-50)，初始化写入吸盘，掉落复核去抖也以此为判据 */
+#define SUCTION_CUP_MIN_VACUUM  10U
+/* 实测密封良好时真空可达31~34，上限须高于稳态真空，泵才能全程在线维持 */
+#define SUCTION_CUP_MAX_VACUUM  40U
+
 typedef enum {
     SUCTION_CUP_RELEASE     = 0,    // 释放物体/初始化
     SUCTION_CUP_HOLDING     = 1,    // 吸住物体

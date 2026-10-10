@@ -30,12 +30,12 @@ int dev_suction_cup_init(void)
     }
     osDelay(10);
     /*设置最小真空度*/
-    if (suction_cup_set_min_vacuum(5) != 0) {
+    if (suction_cup_set_min_vacuum(SUCTION_CUP_MIN_VACUUM) != 0) {
         ret = -1;
     }
     osDelay(10);
     /*设置最大真空度*/
-    if (suction_cup_set_max_vacuum(20) != 0) {
+    if (suction_cup_set_max_vacuum(SUCTION_CUP_MAX_VACUUM) != 0) {
         ret = -1;
     }
     osDelay(10);
@@ -65,12 +65,16 @@ int suction_cup_set_max_vacuum(uint16_t vacuum)
 }
 
 /**
- * @brief 吸盘吸取 (简单吸取模式)
+ * @brief 吸盘吸取 (按真空度范围吸取模式)
+ *
+ * 简单模式(0x0002=1)下泵打满即停，靠系统气密维持真空，膜材微漏时
+ * 抬升途中真空衰减会触发设备判掉落并主动泄气。改用 0x0002=3 连续
+ * 写入 [min,max]，设备在区间内持续补气维持真空。
  * @return MODBUS_OK 成功，其他错误码
  */
 int suction_cup_suck(void)
 {
-    return modbus_write_single_register(MODBUS_ADDR_SUCTION_CUP, 0x0002, SUCTION_CMD_SUCK);
+    return suction_cup_vacuum_suck(SUCTION_CUP_MIN_VACUUM, SUCTION_CUP_MAX_VACUUM);
 }
 
 /**
@@ -199,6 +203,19 @@ int suction_cup_read_device_info(uint16_t *model, uint16_t *hw_ver, uint16_t *sw
 #define SUC_POLL_INTERVAL_MS    50   // 轮询间隔
 
 /**
+ * @brief 在当前日志行追加打印真空度 (寄存器0x0042)，用于区分真空真丢与阈值抖动
+ */
+static void suction_cup_print_vacuum(void)
+{
+    uint16_t vacuum = 0;
+    if (suction_cup_read_vacuum(&vacuum) == MODBUS_OK) {
+        printf(" vacuum=%u", vacuum);
+    } else {
+        printf(" vacuum=READ_FAIL");
+    }
+}
+
+/**
  * @brief 检查吸盘当前状态（单次查询）
  */
 bool suction_cup_check_state(SuctionCupState_t *state)
@@ -264,22 +281,34 @@ int suction_cup_wait_state(SuctionCupState_t desired_state, uint32_t timeout_ms)
                     return -2;
                 }
                 if (state != desired_state) {
-                    printf("[SUC] State changed during confirm: expected=%d actual=%d\\r\\n",
+                    printf("[SUC] State changed during confirm: expected=%d actual=%d",
                            desired_state, state);
+                    suction_cup_print_vacuum();
+                    printf("\r\n");
                     return -2;
                 }
+            }
+            /* 确认吸住时记录真空度，便于核对保持裕量 */
+            if (desired_state == SUCTION_CUP_HOLDING) {
+                printf("[SUC] Hold confirmed: state=%d", desired_state);
+                suction_cup_print_vacuum();
+                printf("\r\n");
             }
             return 0;   // 达到期望状态并稳定保持
         }
         // 检测异常终态：掉落 (3)、未吸住 (2) — 不再等待
         if (desired_state == SUCTION_CUP_HOLDING &&
             (state == SUCTION_CUP_DROPPED || state == SUCTION_CUP_NOT_HOLD)) {
-            printf("[SUC] Wait hold failed: state=%d\r\n", state);
+            printf("[SUC] Wait hold failed: state=%d", state);
+            suction_cup_print_vacuum();
+            printf("\r\n");
             return -2;
         }
     }
 
-    printf("[SUC] Wait state=%d timeout (%lums)\r\n", desired_state, timeout_ms);
+    printf("[SUC] Wait state=%d timeout (%lums)", desired_state, timeout_ms);
+    suction_cup_print_vacuum();
+    printf("\r\n");
     return -1;
 }
 

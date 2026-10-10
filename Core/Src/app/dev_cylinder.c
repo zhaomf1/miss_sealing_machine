@@ -51,13 +51,14 @@ int dev_cylinder_init(void)
     if (cylinder_set_push_dir(CYLINDER_ID_SUCK, CYLINDER_PUSH_DIR_FORWARD) != MODBUS_OK ||
         cylinder_set_force(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_FORCE_PERCENT) != MODBUS_OK ||
         cylinder_set_push_length(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_LENGTH_001MM) != MODBUS_OK ||
-        cylinder_set_push_speed(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_SPEED_PERCENT) != MODBUS_OK) {
+        cylinder_set_push_speed(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_SPEED_PERCENT) != MODBUS_OK ||
+        cylinder_set_max_speed(CYLINDER_ID_SUCK, SUCTION_CYL_WORK_SPEED_PERCENT) != MODBUS_OK) {
         printf("[CYL] Suction cylinder push config FAIL\r\n");
         return -1;
     }
-    printf("[CYL] Suction push disabled: dir=forward force=%u%% length=%u speed=%u%%\r\n",
+    printf("[CYL] Suction push disabled: dir=forward force=%u%% length=%u speed=%u%% max_speed=%u%%\r\n",
            SUCTION_CYL_PUSH_FORCE_PERCENT, SUCTION_CYL_PUSH_LENGTH_001MM,
-           SUCTION_CYL_PUSH_SPEED_PERCENT);
+           SUCTION_CYL_PUSH_SPEED_PERCENT, SUCTION_CYL_WORK_SPEED_PERCENT);
 
     /* ---- 封膜电缸归零 ---- */
     if (cylinder_home(CYLINDER_ID_SEAL) != MODBUS_OK) {
