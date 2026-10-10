@@ -421,7 +421,15 @@ static int suction_cup_verify_holding(const char *checkpoint)
         return -1;
     }
 
-    printf("[SUC] Holding check OK at %s\r\n", checkpoint);
+    /* 成功路径也记录真空度，供批次对比：抬升前后真空差反映保持能力 */
+    {
+        uint16_t vacuum = 0;
+        if (suction_cup_read_vacuum(&vacuum) == 0) {
+            printf("[SUC] Holding check OK at %s: vacuum=%u\r\n", checkpoint, vacuum);
+        } else {
+            printf("[SUC] Holding check OK at %s\r\n", checkpoint);
+        }
+    }
     return 0;
 }
 
@@ -559,6 +567,14 @@ static void cmd_suction_action(uint16_t value)
     /* 吸住后先建压等待，再开始带膜抬升，可被停止命令打断 */
     if (delay_interruptible(SUCTION_CUP_HOLD_SETTLE_MS) != 0) {
         goto done;
+    }
+    /* 抬升前采样：与 Hold confirmed 的差值即静态泄漏速率 */
+    {
+        uint16_t vacuum = 0;
+        if (suction_cup_read_vacuum(&vacuum) == 0) {
+            printf("[SUC] Pre-lift vacuum=%u (after %ums settle)\r\n",
+                   vacuum, SUCTION_CUP_HOLD_SETTLE_MS);
+        }
     }
 
     /* Step 4: 吸膜电缸移动到0 */

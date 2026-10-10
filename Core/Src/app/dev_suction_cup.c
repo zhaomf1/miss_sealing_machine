@@ -25,7 +25,7 @@ int dev_suction_cup_init(void)
     }
     osDelay(10);
     /*设置吸取判断时间为2秒*/
-    if (suction_cup_set_judge_time(1) != 0) {
+    if (suction_cup_set_judge_time(2) != 0) {
         ret = -1;
     }
     osDelay(10);

@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 /* 真空度下限(1-50)，初始化写入吸盘，掉落复核去抖也以此为判据 */
-#define SUCTION_CUP_MIN_VACUUM  10U
+#define SUCTION_CUP_MIN_VACUUM  8U
 /* 实测密封良好时真空可达31~34，上限须高于稳态真空，泵才能全程在线维持 */
 #define SUCTION_CUP_MAX_VACUUM  40U
 
