@@ -138,8 +138,6 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define SUCTION_CUP_HOLD_SETTLE_MS      300
 #define WORKFLOW_STEP_SETTLE_MS          300
 #define HOLD_VERIFY_DEBOUNCE_MS          250   // 掉落复核去抖等待，防瞬时真空抖动误判
-/* 带膜回零降速：抬升冲击是膜脱落的诱因之一，慢速回升后恢复工作速度 */
-#define SUCTION_CYL_RETURN_SPEED_PERCENT 30U
 
 /* ---- 复合动作重试次数 ---- */
 #define COMPOUND_ACTION_MAX_RETRIES  3
@@ -345,12 +343,7 @@ static int suck_cyl_return_to_zero(void)
     }
     printf("[CMD_0x0061] Push segment disabled before return to 0\r\n");
 
-    /* 带膜抬升：降速减少剥离/惯性冲击，到位后恢复工作速度 */
-    if (cylinder_set_max_speed(CYLINDER_ID_SUCK, SUCTION_CYL_RETURN_SPEED_PERCENT) != 0) {
-        printf("[CMD_0x0061] Set return speed FAIL, keep default\r\n");
-    } else {
-        printf("[CMD_0x0061] Return speed=%u%%\r\n", SUCTION_CYL_RETURN_SPEED_PERCENT);
-    }
+    /* 抬升用工作速度运行(下压接触已由推压段限力保护) */
 
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
@@ -359,10 +352,6 @@ static int suck_cyl_return_to_zero(void)
         }
         printf("[CMD_0x0061] Cleanup return attempt %d/%d FAIL (ret=%d)\r\n",
                attempt + 1, COMPOUND_ACTION_MAX_RETRIES, ret);
-    }
-
-    if (cylinder_set_max_speed(CYLINDER_ID_SUCK, SUCTION_CYL_WORK_SPEED_PERCENT) != 0) {
-        printf("[CMD_0x0061] Restore work speed FAIL\r\n");
     }
 
     return ret;
@@ -870,6 +859,14 @@ static void cmd_stop_workflow(void)
     uint8_t seal_cyl_homed = 0;
     uint8_t suck_cyl_homed = 0;
 
+    /*
+     * 故障位保持策略(方案A)：失败触发的自动 STOP(prev_state=WORKFLOW_FAILED)
+     * 只置位不清位——恢复动作成功只代表设备回到安全位置，不代表故障已消除；
+     * 故障位只能由下一次对应动作成功(0x61/0x50 等执行成功)清除。
+     * 手动 STOP(无失败前科)维持"恢复成功即清位"，方便人工复位后重新开始。
+     */
+    uint8_t keep_fault = (prev_state == SYS_STATE_WORKFLOW_FAILED);
+
     /* 停止恢复动作自身不应再被取消 */
     g_stop_requested = 0;
 
@@ -894,9 +891,10 @@ static void cmd_stop_workflow(void)
         g_fault_status |= FAULT_BIT_SEAL_CYL;
         result = ACT_RESULT_FAILURE;
     } else {
-        g_fault_status &= (uint16_t)~FAULT_BIT_SEAL_CYL;
+        if (!keep_fault) g_fault_status &= (uint16_t)~FAULT_BIT_SEAL_CYL;
         seal_cyl_homed = 1;
-        printf("[STOP] Step2: Seal cylinder move to 0 OK\r\n");
+        printf("[STOP] Step2: Seal cylinder move to 0 OK%s\r\n",
+               keep_fault ? " (fault kept)" : "");
     }
 
     /* Step 3: 电动吸盘关闭 (释放) */
@@ -907,8 +905,9 @@ static void cmd_stop_workflow(void)
         result = ACT_RESULT_FAILURE;
         printf("[STOP] Step3: Suction cup release FAIL\r\n");
     } else {
-        g_fault_status &= (uint16_t)~FAULT_BIT_SUCTION_CUP;
-        printf("[STOP] Step3: Suction cup released\r\n");
+        if (!keep_fault) g_fault_status &= (uint16_t)~FAULT_BIT_SUCTION_CUP;
+        printf("[STOP] Step3: Suction cup released%s\r\n",
+               keep_fault ? " (fault kept)" : "");
     }
 
     /* Step 4: 关闭吸膜推压段后移动到零点 */
@@ -925,9 +924,10 @@ static void cmd_stop_workflow(void)
         g_fault_status |= FAULT_BIT_SUCK_CYL;
         result = ACT_RESULT_FAILURE;
     } else {
-        g_fault_status &= (uint16_t)~FAULT_BIT_SUCK_CYL;
+        if (!keep_fault) g_fault_status &= (uint16_t)~FAULT_BIT_SUCK_CYL;
         suck_cyl_homed = 1;
-        printf("[STOP] Step4: Suction cylinder move to 0 OK\r\n");
+        printf("[STOP] Step4: Suction cylinder move to 0 OK%s\r\n",
+               keep_fault ? " (fault kept)" : "");
     }
 
     /* Step 5: 富俊电机归零 */
@@ -935,8 +935,9 @@ static void cmd_stop_workflow(void)
         printf("[STOP] Step5: Fujun motor home\r\n");
         ret = fujun_motor_wait_position((int32_t)g_eeprom_zero);
         if (ret == 0) {
-            g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
-            printf("[STOP] Step5: Fujun motor home OK\r\n");
+            if (!keep_fault) g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
+            printf("[STOP] Step5: Fujun motor home OK%s\r\n",
+                   keep_fault ? " (fault kept)" : "");
         } else {
             g_fault_status |= FAULT_BIT_LEAD_SCREW;
             printf("[STOP] Step5: Fujun motor home FAIL (ret=%d)\r\n", ret);
@@ -1032,6 +1033,7 @@ done:
     if (result == ACT_RESULT_SUCCESS) {
         modbus_reg_set_system_state(SYS_STATE_INITIALIZED);
     } else {
+        /* 先置失败态再走STOP：STOP检测到失败前科时保持故障位不清除 */
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         printf("[INIT] Initialization failed, run safe stop sequence\r\n");
         cmd_stop_workflow();

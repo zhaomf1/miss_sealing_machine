@@ -4,9 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* 吸膜电缸常规段速度(%): 上电显式写入，作为带膜回零降速的恢复基准 */
-#define SUCTION_CYL_WORK_SPEED_PERCENT   100U
-
 /* 电缸ID：支持双电缸场景 */
 typedef enum {
     CYLINDER_ID_SUCK = 0,       // 吸膜电缸
