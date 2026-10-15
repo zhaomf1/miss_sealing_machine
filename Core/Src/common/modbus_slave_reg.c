@@ -135,7 +135,7 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define SUCTION_CYL_DOWN_POLL_MS        100
 #define SUCTION_CUP_RELEASE_SETTLE_MS    150
 /* 吸住确认后、带膜抬升前的建压等待：让泵把真空锚定在设定区间 */
-#define SUCTION_CUP_HOLD_SETTLE_MS      300
+#define SUCTION_CUP_HOLD_SETTLE_MS      1000
 #define WORKFLOW_STEP_SETTLE_MS          300
 #define HOLD_VERIFY_DEBOUNCE_MS          250   // 掉落复核去抖等待，防瞬时真空抖动误判
 
@@ -499,6 +499,12 @@ static void cmd_suction_action(uint16_t value)
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         suck_cyl_commanded = 1;
+        /* 电缸开始下行前先开吸盘：接触膜面的瞬间即建立真空，减少接触后等待 */
+        if (suction_cup_suck() != 0) {
+            printf("[CMD_0x0061] Step2 suck-on-descend cmd FAIL (ret=%d)\r\n", ret);
+            goto done;
+        }
+        printf("[CMD_0x0061] Step2 suction cup ON before descend\r\n");
         ret = suck_cyl_move_down_wait_stop(SUCTION_CYL_SUCK_POS);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
@@ -512,7 +518,7 @@ static void cmd_suction_action(uint16_t value)
     }
     g_fault_status &= ~FAULT_BIT_SUCK_CYL;
 
-    /* Step 3: 吸盘开启，等待吸住 */
+    /* Step 3: 吸盘已在下行前开启，等待吸住 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         /* 重试前先释放吸盘，确保硬件状态机从上次失败中复位 */
@@ -528,11 +534,11 @@ static void cmd_suction_action(uint16_t value)
                 printf("[CMD_0x0061] Step3 retry release FAIL (ret=%d)\\r\\n", ret);
                 continue;
             }
-        }
-        ret = suction_cup_suck();
-        if (ret != 0) {
-            printf("[CMD_0x0061] Step3 suck cmd FAIL (ret=%d)\\r\\n", ret);
-            continue;
+            /* 释放复位后重新开启吸盘，继续等待吸住 */
+            if (suction_cup_suck() != 0) {
+                printf("[CMD_0x0061] Step3 re-suck cmd FAIL (ret=%d)\\r\\n", ret);
+                continue;
+            }
         }
         ret = suction_cup_wait_hold(TIMEOUT_SUCTION_CUP);
         if (ret == 0) break;

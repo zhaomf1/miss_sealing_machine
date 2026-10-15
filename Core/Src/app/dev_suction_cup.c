@@ -65,16 +65,12 @@ int suction_cup_set_max_vacuum(uint16_t vacuum)
 }
 
 /**
- * @brief 吸盘吸取 (按真空度范围吸取模式)
- *
- * 简单模式(0x0002=1)下泵打满即停，靠系统气密维持真空，膜材微漏时
- * 抬升途中真空衰减会触发设备判掉落并主动泄气。改用 0x0002=3 连续
- * 写入 [min,max]，设备在区间内持续补气维持真空。
+ * @brief 吸盘吸取 (简单吸取模式)
  * @return MODBUS_OK 成功，其他错误码
  */
 int suction_cup_suck(void)
 {
-    return suction_cup_vacuum_suck(SUCTION_CUP_MIN_VACUUM, SUCTION_CUP_MAX_VACUUM);
+    return modbus_write_single_register(MODBUS_ADDR_SUCTION_CUP, 0x0002, SUCTION_CMD_SUCK);
 }
 
 /**
