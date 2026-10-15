@@ -336,14 +336,7 @@ static int suck_cyl_return_to_zero(void)
 {
     int ret = -1;
 
-    ret = cylinder_set_push_length(CYLINDER_ID_SUCK, 0);
-    if (ret != 0) {
-        printf("[CMD_0x0061] Disable push segment before return FAIL ret=%d\r\n", ret);
-        return ret;
-    }
-    printf("[CMD_0x0061] Push segment disabled before return to 0\r\n");
-
-    /* 抬升用工作速度运行(下压接触已由推压段限力保护) */
+    /* 推压段仅上电初始化时统一设置(2500)，上升过程不再反复禁用/恢复 */
 
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
@@ -644,13 +637,9 @@ static void cmd_lay_film_action(uint16_t value)
     }
     g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
 
-    /* Step 2: 吸膜电缸下落到铺膜点 */
-    ret = cylinder_set_push_length(CYLINDER_ID_SUCK, 0);
-    if (ret != 0) {
-        g_fault_status |= FAULT_BIT_SUCK_CYL;
-        printf("[CMD_0x0062] Step2 disable push segment FAIL ret=%d\r\n", ret);
-        goto done;
-    }
+    /* Step 2: 吸膜电缸下落到铺膜点
+     * 推压段保持 init 设置(2500)不在此处禁用：铺膜点2500恰为推压段起点，
+     * 下压过程由限力段保护。 */
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, SUCTION_CYL_PAVE_POS, TIMEOUT_CYL_MOVE);
@@ -916,15 +905,10 @@ static void cmd_stop_workflow(void)
                keep_fault ? " (fault kept)" : "");
     }
 
-    /* Step 4: 关闭吸膜推压段后移动到零点 */
+    /* Step 4: 吸膜电缸移动到零点
+     * 推压段保持 init 设置(2500)不在此处禁用，回零沿正常方向离开推压段。 */
     printf("[STOP] Step4: Suction cylinder move to 0\r\n");
-    ret = cylinder_set_push_length(CYLINDER_ID_SUCK, 0);
-    if (ret != 0) {
-        printf("[STOP] Step4: Suction cylinder disable push segment FAIL (ret=%d)\r\n", ret);
-    } else {
-        printf("[STOP] Step4: Suction cylinder push segment disabled\r\n");
-        ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
-    }
+    ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, 0, TIMEOUT_CYL_MOVE);
     if (ret != 0) {
         printf("[STOP] Step4: Suction cylinder move to 0 FAIL (ret=%d)\r\n", ret);
         g_fault_status |= FAULT_BIT_SUCK_CYL;
