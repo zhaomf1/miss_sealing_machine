@@ -487,8 +487,16 @@ static void cmd_suction_action(uint16_t value)
     g_fault_status &= ~FAULT_BIT_LEAD_SCREW;
 
     /* Step 2: 吸膜电缸下落到吸膜点
-     * 不再禁用推压段：init 已配置末端5mm限力段(15%力/10%速)，
-     * 吸嘴以恒定力接触膜面，压深不再随膜堆高度漂移。 */
+     * 显式设置推压段2500(25mm限力段,15%力/10%速)：
+     * 吸嘴以恒定力接触膜面，压深不随膜堆高度漂移。 */
+    ret = cylinder_set_push_length(CYLINDER_ID_SUCK,
+                                   SUCTION_CYL_PUSH_LENGTH_001MM);
+    if (ret != 0) {
+        g_fault_status |= FAULT_BIT_SUCK_CYL;
+        printf("[CMD_0x0061] Step2 set push segment FAIL ret=%d\r\n", ret);
+        goto done;
+    }
+    printf("[CMD_0x0061] Step2 push segment=%u\r\n", SUCTION_CYL_PUSH_LENGTH_001MM);
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         suck_cyl_commanded = 1;
@@ -638,8 +646,15 @@ static void cmd_lay_film_action(uint16_t value)
     g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
 
     /* Step 2: 吸膜电缸下落到铺膜点
-     * 推压段保持 init 设置(2500)不在此处禁用：铺膜点2500恰为推压段起点，
-     * 下压过程由限力段保护。 */
+     * 显式禁用推压段：铺膜目标2500恰为吸膜推压段(2500)的起点，
+     * 若不禁用则全程落入10%慢速区。铺膜是定行程自由下落，无需限力。 */
+    ret = cylinder_set_push_length(CYLINDER_ID_SUCK, 0);
+    if (ret != 0) {
+        g_fault_status |= FAULT_BIT_SUCK_CYL;
+        printf("[CMD_0x0062] Step2 disable push segment FAIL ret=%d\r\n", ret);
+        goto done;
+    }
+    printf("[CMD_0x0062] Step2 push segment disabled before pave\r\n");
     ret = -1;
     for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
         ret = cylinder_move_to_wait(CYLINDER_ID_SUCK, SUCTION_CYL_PAVE_POS, TIMEOUT_CYL_MOVE);

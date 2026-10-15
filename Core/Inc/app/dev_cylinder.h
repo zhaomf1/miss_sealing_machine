@@ -4,6 +4,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/*
+ * 吸膜下压用推压段长度(行程末端限力段，单位0.01mm)：
+ * 目标5000前最后25mm以15%力/10%速接触膜面，压深由力决定、
+ * 不随膜堆高度漂移。上电init与0x61吸膜下压前均写入此值；
+ * 铺膜(0x62)下落前显式写0禁用，回零不禁用。
+ */
+#define SUCTION_CYL_PUSH_LENGTH_001MM   2500U
+
 /* 电缸ID：支持双电缸场景 */
 typedef enum {
     CYLINDER_ID_SUCK = 0,       // 吸膜电缸

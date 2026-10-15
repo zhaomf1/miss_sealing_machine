@@ -7,11 +7,6 @@
 #include <stdio.h>
 
 #define SUCTION_CYL_PUSH_FORCE_PERCENT    15U
-/*
- * 吸膜下压用推压段(行程末端限力段)：目标5000前最后25mm以15%力/10%速接触膜面，
- * 压深由力决定、不再随膜堆高度漂移。吸膜电缸的其余动作(回零/铺膜)均显式写0禁用。
- */
-#define SUCTION_CYL_PUSH_LENGTH_001MM   2500U
 #define SUCTION_CYL_PUSH_SPEED_PERCENT    10U
 
 /* ------------------------------------------------------------------ *
