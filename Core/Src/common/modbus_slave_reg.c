@@ -88,6 +88,7 @@ static uint16_t g_action_status = 0xFFFF;
 #define FAULT_BIT_SEAL_CYL       (1 << 2)
 #define FAULT_BIT_LEAD_SCREW     (1 << 3)
 #define FAULT_BIT_SUCTION_CUP    (1 << 4)
+#define FAULT_BIT_FILM_EMPTY     (1 << 6)   // 剩余膜数量不足(=0)，无法启动流程
 
 static volatile uint16_t g_fault_status = 0x0000;
 
@@ -197,6 +198,12 @@ static int remaining_film_store(uint32_t value)
 
     g_eeprom_remaining_film = value;
     shadow_set_u32(REG_FILM_QUANTITY_QUERY, value);
+    /* 补膜后清除"膜数量不足"故障位；写0视为清空库存，保持置位 */
+    if (value > 0U) {
+        g_fault_status &= (uint16_t)~FAULT_BIT_FILM_EMPTY;
+        printf("[FILM] Refilled: remaining=%lu, film-empty fault cleared\r\n",
+               (unsigned long)value);
+    }
     printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
            REG_FILM_QUANTITY_UPDATE, eeprom_param_name(REG_FILM_QUANTITY_UPDATE),
            (unsigned long)value);
@@ -1189,6 +1196,7 @@ static void cmd_start_workflow(void)
 
     if (g_eeprom_remaining_film == 0U) {
         printf("[WORKFLOW] Start rejected: remaining film=0\r\n");
+        g_fault_status |= FAULT_BIT_FILM_EMPTY;   /* bit6: 膜数量不足 */
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         action_set_result(0x10, ACT_RESULT_FAILURE);
         workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "FAILED");
