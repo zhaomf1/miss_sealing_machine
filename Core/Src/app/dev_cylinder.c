@@ -269,6 +269,17 @@ int cylinder_set_push_dir(CylinderId_t id, CylinderPushDir_t dir)
 }
 
 /**
+ * @brief 清除电缸控制器错误状态 (写 0x0503=1，故障复位)
+ *
+ * 控制器报错后可能拒绝运动(如"到位"但位置不达标、堵转锁死)，
+ * 复位错误状态后可重新下发运动命令。
+ */
+int cylinder_clear_error(CylinderId_t id)
+{
+    return modbus_write_single_register(cylinder_id_to_addr(id), 0x0503, 0x0001);
+}
+
+/**
  * @brief IO参数测试: 直接控制4组预设IO参数
  * @param id 电缸 ID
  * @param group IO组号 (1~4)
@@ -453,6 +464,10 @@ int cylinder_wait_position(CylinderId_t id, uint16_t target_001mm, uint32_t time
 
 /**
  * @brief 下发目标位置并等待实际到位
+ *
+ * 超时(-1)/堵转(-2)时自动尝试错误复位(0x0503=1)后重发一次运动命令：
+ * 控制器报错后常表现为拒绝运动或谎报到位，复位后即可重新控制。
+ * 仅恢复一轮不成环；通讯失败(-3)不触发复位(复位命令同样发不出去)。
  */
 int cylinder_move_to_wait(CylinderId_t id, uint16_t position_001mm, uint32_t timeout_ms)
 {
@@ -463,7 +478,29 @@ int cylinder_move_to_wait(CylinderId_t id, uint16_t position_001mm, uint32_t tim
         return -3;
     }
 
-    return cylinder_wait_position(id, position_001mm, timeout_ms);
+    ret = cylinder_wait_position(id, position_001mm, timeout_ms);
+    if (ret != -1 && ret != -2) {
+        return ret;
+    }
+
+    /* 控制器异常(谎报到位/堵转)：写0x0503复位错误状态后重试一次 */
+    printf("[CYL] id=%d error recovery: send 0x0503 reset (ret=%d)\r\n", (int)id, ret);
+    if (cylinder_clear_error(id) != MODBUS_OK) {
+        printf("[CYL] id=%d error recovery: clear cmd FAIL\r\n", (int)id);
+        return ret;
+    }
+    osDelay(CYL_ERR_RESET_SETTLE_MS);
+
+    ret = cylinder_move_to(id, position_001mm);
+    if (ret != MODBUS_OK) {
+        printf("[CYL] id=%d error recovery: move cmd FAIL target=%u ret=%d\r\n",
+               (int)id, position_001mm, ret);
+        return -3;
+    }
+
+    ret = cylinder_wait_position(id, position_001mm, timeout_ms);
+    printf("[CYL] id=%d error recovery result ret=%d\r\n", (int)id, ret);
+    return ret;
 }
 
 /**

@@ -12,6 +12,9 @@
  */
 #define SUCTION_CYL_PUSH_LENGTH_001MM   2500U
 
+/* 错误复位(0x0503=1)后等待控制器恢复接受控制的延时 */
+#define CYL_ERR_RESET_SETTLE_MS         500U
+
 /* 电缸ID：支持双电缸场景 */
 typedef enum {
     CYLINDER_ID_SUCK = 0,       // 吸膜电缸
@@ -62,6 +65,15 @@ int cylinder_save_params(CylinderId_t id);
 int cylinder_set_home_dir(CylinderId_t id, CylinderHomeDir_t dir);
 int cylinder_set_push_speed(CylinderId_t id, uint16_t speed_percent);
 int cylinder_set_push_dir(CylinderId_t id, CylinderPushDir_t dir);
+/**
+ * @brief 清除电缸控制器错误状态 (写 0x0503=1，故障复位)
+ * @param id 电缸 ID
+ * @return MODBUS_OK 成功, 其他错误码
+ *
+ * 控制器报错(如"到位"但位置不达标、堵转)后拒绝运动时，
+ * 写本寄存器复位错误状态后可重新控制。
+ */
+int cylinder_clear_error(CylinderId_t id);
 int cylinder_io_test(CylinderId_t id, uint16_t group);
 int cylinder_set_io_mode(CylinderId_t id, uint16_t enable);
 int dev_cylinder_init(void);

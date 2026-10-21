@@ -31,6 +31,7 @@ static const ModbusRegDef_t reg_map[] = {
     {0x0011, REG_ACCESS_WO, REG_TYPE_U16},   // 初始化流程
     {0x0012, REG_ACCESS_WO, REG_TYPE_U16},   // 结束流程
     {0x0013, REG_ACCESS_RO, REG_TYPE_U16},   // 获取系统状态
+    {0x0014, REG_ACCESS_WO, REG_TYPE_U16},   // 启动老化测试 (1=开启, 0=停止)
 
     /* 2.3 调试动作控制 */
     {0x0020, REG_ACCESS_RO, REG_TYPE_U16},   // 读取实时温度 (0.1°C单位)
@@ -95,6 +96,17 @@ static volatile uint16_t g_fault_status = 0x0000;
 /* ---- 系统工作状态 (0x0013) ---- */
 static volatile uint16_t g_system_state = SYS_STATE_UNINITIALIZED;
 static volatile uint8_t g_stop_requested = 0;
+
+/*
+ * 老化测试模式 (寄存器 0x0014)：无膜持续运行完整流程。
+ * 开启后由 0x0011 初始化、0x0010 手动触发第一轮，之后每轮流程
+ * 成功结束延时 AGING_NEXT_ROUND_DELAY_MS 自动续轮。
+ * 开启期间：跳过吸附校验(Step3吸住等待/三个保持检查点)、
+ * 不校验/扣减剩余膜；封膜计数(0x0080)仍每轮+1，兼作老化轮次计数。
+ * 写0或0x0012结束流程即关闭本模式并立即停止当前轮。
+ */
+static volatile uint8_t g_aging_mode = 0;
+#define AGING_NEXT_ROUND_DELAY_MS  5000U   /* 老化模式：相邻两轮流程之间的间隔 */
 
 static void cmd_stop_workflow(void);
 
@@ -326,6 +338,10 @@ static int suck_cyl_move_down_wait_stop(uint16_t position)
         }
         if (state != CYLINDER_MOTION_RUNNING) {
             printf("[CMD_0x0061] Step2 Suck cyl invalid state=%d\r\n", (int)state);
+            /* 控制器异常：复位错误状态，上层重试时重新可控 */
+            if (cylinder_clear_error(CYLINDER_ID_SUCK) == 0) {
+                osDelay(CYL_ERR_RESET_SETTLE_MS);
+            }
             return -1;
         }
         if (delay_interruptible(SUCTION_CYL_DOWN_POLL_MS) != 0) {
@@ -336,6 +352,10 @@ static int suck_cyl_move_down_wait_stop(uint16_t position)
 
     printf("[CMD_0x0061] Step2 Suck cyl down timeout target=%u (%ums)\r\n",
            position, TIMEOUT_CYL_MOVE);
+    /* 超时疑似控制器错误态锁死：复位后交上层重试 */
+    if (cylinder_clear_error(CYLINDER_ID_SUCK) == 0) {
+        osDelay(CYL_ERR_RESET_SETTLE_MS);
+    }
     return -1;
 }
 
@@ -368,6 +388,18 @@ static int suction_cup_verify_holding(const char *checkpoint)
 {
     SuctionCupState_t state = SUCTION_CUP_RELEASE;
     int ret = suction_cup_read_state(&state);
+
+    /* 老化测试无膜：检查点直接放行，仅保留通讯校验 */
+    if (g_aging_mode) {
+        if (ret == 0) {
+            printf("[SUC] Holding check SKIPPED at %s (aging, state=%d)\r\n",
+                   checkpoint, (int)state);
+            return 0;
+        }
+        printf("[SUC] Holding check FAIL at %s: state read ret=%d\r\n",
+               checkpoint, ret);
+        return ret;
+    }
 
     if (ret != 0) {
         printf("[SUC] Holding check FAIL at %s: state read ret=%d\r\n",
@@ -527,37 +559,46 @@ static void cmd_suction_action(uint16_t value)
     g_fault_status &= ~FAULT_BIT_SUCK_CYL;
 
     /* Step 3: 吸盘已在下行前开启，等待吸住 */
-    ret = -1;
-    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
-        /* 重试前先释放吸盘，确保硬件状态机从上次失败中复位 */
-        if (attempt > 0) {
-            ret = suction_cup_release();
-            if (ret != 0) {
-                printf("[CMD_0x0061] Step3 retry release cmd FAIL (ret=%d)\\r\\n", ret);
-                continue;
-            }
-            ret = suction_cup_wait_release(TIMEOUT_SUCTION_CUP);
-            if (ret != 0) {
-                if (ret == ACTION_WAIT_CANCELLED) goto done;
-                printf("[CMD_0x0061] Step3 retry release FAIL (ret=%d)\\r\\n", ret);
-                continue;
-            }
-            /* 释放复位后重新开启吸盘，继续等待吸住 */
-            if (suction_cup_suck() != 0) {
-                printf("[CMD_0x0061] Step3 re-suck cmd FAIL (ret=%d)\\r\\n", ret);
-                continue;
-            }
+    if (g_aging_mode) {
+        /* 老化测试无膜：真空必然建不起来，不检查吸住状态，
+         * 以固定延时维持与真实吸取+建压接近的节拍。 */
+        if (delay_interruptible(SUCTION_CYL_DOWN_SETTLE_MS + SUCTION_CUP_HOLD_SETTLE_MS) != 0) {
+            goto done;
         }
-        ret = suction_cup_wait_hold(TIMEOUT_SUCTION_CUP);
-        if (ret == 0) break;
-        if (ret == ACTION_WAIT_CANCELLED) break;
-        printf("[CMD_0x0061] Step3 attempt %d/%d FAIL (ret=%d)\r\n",
-               attempt + 1, COMPOUND_ACTION_MAX_RETRIES, ret);
-    }
-    if (ret != 0) {
-        g_fault_status |= FAULT_BIT_SUCTION_CUP;
-        printf("[CMD_0x0061] Step3 Suction cup hold FAIL after %d retries\r\n", COMPOUND_ACTION_MAX_RETRIES);
-        goto done;
+        printf("[CMD_0x0061] Step3 hold check SKIPPED (aging)\r\n");
+    } else {
+        ret = -1;
+        for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+            /* 重试前先释放吸盘，确保硬件状态机从上次失败中复位 */
+            if (attempt > 0) {
+                ret = suction_cup_release();
+                if (ret != 0) {
+                    printf("[CMD_0x0061] Step3 retry release cmd FAIL (ret=%d)\\r\\n", ret);
+                    continue;
+                }
+                ret = suction_cup_wait_release(TIMEOUT_SUCTION_CUP);
+                if (ret != 0) {
+                    if (ret == ACTION_WAIT_CANCELLED) goto done;
+                    printf("[CMD_0x0061] Step3 retry release FAIL (ret=%d)\\r\\n", ret);
+                    continue;
+                }
+                /* 释放复位后重新开启吸盘，继续等待吸住 */
+                if (suction_cup_suck() != 0) {
+                    printf("[CMD_0x0061] Step3 re-suck cmd FAIL (ret=%d)\\r\\n", ret);
+                    continue;
+                }
+            }
+            ret = suction_cup_wait_hold(TIMEOUT_SUCTION_CUP);
+            if (ret == 0) break;
+            if (ret == ACTION_WAIT_CANCELLED) break;
+            printf("[CMD_0x0061] Step3 attempt %d/%d FAIL (ret=%d)\r\n",
+                   attempt + 1, COMPOUND_ACTION_MAX_RETRIES, ret);
+        }
+        if (ret != 0) {
+            g_fault_status |= FAULT_BIT_SUCTION_CUP;
+            printf("[CMD_0x0061] Step3 Suction cup hold FAIL after %d retries\r\n", COMPOUND_ACTION_MAX_RETRIES);
+            goto done;
+        }
     }
     g_fault_status &= ~FAULT_BIT_SUCTION_CUP;
 
@@ -1194,7 +1235,8 @@ static void cmd_start_workflow(void)
     g_stop_requested = 0;
     workflow_start_tick = osKernelGetTickCount();
 
-    if (g_eeprom_remaining_film == 0U) {
+    /* 老化测试无膜：不校验剩余膜数量，不触发膜不足故障位 */
+    if (!g_aging_mode && g_eeprom_remaining_film == 0U) {
         printf("[WORKFLOW] Start rejected: remaining film=0\r\n");
         g_fault_status |= FAULT_BIT_FILM_EMPTY;   /* bit5: 膜数量不足 */
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
@@ -1227,7 +1269,8 @@ static void cmd_start_workflow(void)
         return;
     }
     workflow_log_elapsed("Step1 Suction", osKernelGetTickCount() - step_start_tick, "SUCCESS");
-    if (workflow_consume_film() != WRITE_OK) {
+    /* 老化测试无膜：跳过剩余膜扣减 */
+    if (!g_aging_mode && workflow_consume_film() != WRITE_OK) {
         printf("[WORKFLOW] Save remaining film FAIL\r\n");
         modbus_reg_set_system_state(SYS_STATE_WORKFLOW_FAILED);
         cmd_stop_workflow();
@@ -1341,6 +1384,29 @@ static void cmd_start_workflow(void)
     action_set_result(0x10, ACT_RESULT_SUCCESS);
     workflow_log_elapsed("Total", osKernelGetTickCount() - workflow_start_tick, "SUCCESS");
     printf("[WORKFLOW] === Complete ===\r\n");
+
+    /* 老化测试：流程成功结束后等待5s自动开始下一轮，可被停止命令打断。
+     * 通过向自身队列投递0x10实现循环，无需上位机参与。
+     * 流程失败(失败即停)或模式已关闭则不续轮。 */
+    if (g_aging_mode) {
+        printf("[AGING] Next round in %ums (send 0x0012 or 0x0014=0 to stop)\r\n",
+               AGING_NEXT_ROUND_DELAY_MS);
+        if (delay_interruptible(AGING_NEXT_ROUND_DELAY_MS) != 0) {
+            printf("[AGING] Auto-restart cancelled by stop request\r\n");
+            cmd_stop_workflow();
+            return;
+        }
+        if (!g_aging_mode) {
+            /* 等待期间模式被关闭：不续轮，直接退出 */
+            printf("[AGING] Mode disabled during wait, aging loop ended\r\n");
+            return;
+        }
+        if (action_enqueue(0x10, 0, 0) != WRITE_OK) {
+            printf("[AGING] Auto-restart enqueue FAIL, aging loop ended\r\n");
+            return;
+        }
+        printf("[AGING] Next round enqueued\r\n");
+    }
 }
 
 /* ===================================================================
@@ -1587,17 +1653,51 @@ int modbus_reg_write_execute(uint16_t addr, uint16_t value)
         }
         /* 0x0012: 结束流程（停止） */
         case 0x0012: {
+            uint8_t was_aging = g_aging_mode;
             if (value != 1U) return WRITE_ERR_ILLEGAL;
+            /* 结束流程同时关闭老化模式，避免后续0x0010意外重启老化循环 */
+            g_aging_mode = 0;
             if (g_system_state == SYS_STATE_RUNNING ||
                 g_system_state == SYS_STATE_INITIALIZING) {
                 g_stop_requested = 1;
                 action_set_result(0x12, ACT_RESULT_EXECUTING);
-                printf("[REG_0x0012] Immediate stop requested\r\n");
+                printf("[REG_0x0012] Immediate stop requested%s\r\n",
+                       was_aging ? " (aging off)" : "");
                 break;
+            }
+            /* 老化轮间等待期(state=FINISHED)：置停止标志打断5s延时立即退出循环 */
+            if (was_aging) {
+                g_stop_requested = 1;
             }
             int ret = action_enqueue(0x12, 0, 0);
             if (ret != WRITE_OK) { printf("[REG_0x0012] Queue full\r\n"); return ret; }
             printf("[REG_0x0012] Stop workflow enqueued\r\n");
+            break;
+        }
+        /* 0x0014: 启动/停止老化测试 */
+        case 0x0014: {
+            if (value > 1U) return WRITE_ERR_ILLEGAL;
+            if (value == 1U) {
+                if (g_system_state == SYS_STATE_RUNNING ||
+                    g_system_state == SYS_STATE_INITIALIZING) {
+                    printf("[REG_0x0014] System busy, state=0x%04X\r\n", g_system_state);
+                    return WRITE_ERR_ILLEGAL;
+                }
+                g_aging_mode = 1;
+                printf("[AGING] Mode ON: init via 0x0011, start first round via 0x0010\r\n");
+            } else {
+                uint8_t was_aging = g_aging_mode;
+                g_aging_mode = 0;
+                /* 老化运行中：复用0x0012立即停止机制，当前轮被打断后
+                 * 走停止恢复序列(停加热/电缸回零/释放吸盘)回到正常工作状态。
+                 * 非老化状态下写0仅清除标志，不影响正常流程。 */
+                if (was_aging) {
+                    g_stop_requested = 1;
+                    printf("[AGING] Mode OFF: stop requested\r\n");
+                } else {
+                    printf("[AGING] Mode OFF (was not aging)\r\n");
+                }
+            }
             break;
         }
 
