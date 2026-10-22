@@ -9,6 +9,14 @@
 #define SUCTION_CYL_PUSH_FORCE_PERCENT    15U
 #define SUCTION_CYL_PUSH_SPEED_PERCENT    10U
 
+/*
+ * 封膜电缸推压段：init 一次性显式配置，不再依赖控制器 Flash 历史值
+ * (此前从未写入，中段限力段残留值疑似导致抬升停在2750族位置)。
+ */
+#define SEAL_CYL_PUSH_FORCE_PERCENT      100U
+#define SEAL_CYL_PUSH_LENGTH_001MM       2000U
+#define SEAL_CYL_PUSH_SPEED_PERCENT       50U
+
 /* ------------------------------------------------------------------ *
  *  内部工具：电缸ID → Modbus 从机地址
  * ------------------------------------------------------------------ */
@@ -68,6 +76,19 @@ int dev_cylinder_init(void)
         return -1;
     }
     printf("[CYL] Seal cylinder home OK\r\n");
+
+    /* 封膜电缸推压段：回零后一次性显式写入(方向默认正向，与吸膜一致)。
+     * 后续运动(下压/回零)不再重复配置。 */
+    if (cylinder_set_push_dir(CYLINDER_ID_SEAL, CYLINDER_PUSH_DIR_FORWARD) != MODBUS_OK ||
+        cylinder_set_force(CYLINDER_ID_SEAL, SEAL_CYL_PUSH_FORCE_PERCENT) != MODBUS_OK ||
+        cylinder_set_push_length(CYLINDER_ID_SEAL, SEAL_CYL_PUSH_LENGTH_001MM) != MODBUS_OK ||
+        cylinder_set_push_speed(CYLINDER_ID_SEAL, SEAL_CYL_PUSH_SPEED_PERCENT) != MODBUS_OK) {
+        printf("[CYL] Seal cylinder push config FAIL\r\n");
+        return -1;
+    }
+    printf("[CYL] Seal push segment: dir=forward force=%u%% length=%u(0.01mm) speed=%u%%\r\n",
+           SEAL_CYL_PUSH_FORCE_PERCENT, SEAL_CYL_PUSH_LENGTH_001MM,
+           SEAL_CYL_PUSH_SPEED_PERCENT);
 
     return 0;
 }

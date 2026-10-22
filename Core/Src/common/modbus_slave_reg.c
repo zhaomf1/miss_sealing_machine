@@ -99,8 +99,8 @@ static volatile uint8_t g_stop_requested = 0;
 
 /*
  * 老化测试模式 (寄存器 0x0014)：无膜持续运行完整流程。
- * 开启后由 0x0011 初始化、0x0010 手动触发第一轮，之后每轮流程
- * 成功结束延时 AGING_NEXT_ROUND_DELAY_MS 自动续轮。
+ * 写1后自动执行初始化(0x11)并开始首轮流程(0x10)，之后每轮流程
+ * 成功结束延时 AGING_NEXT_ROUND_DELAY_MS 自动续轮，全程无需上位机参与。
  * 开启期间：跳过吸附校验(Step3吸住等待/三个保持检查点)、
  * 不校验/扣减剩余膜；封膜计数(0x0080)仍每轮+1，兼作老化轮次计数。
  * 写0或0x0012结束流程即关闭本模式并立即停止当前轮。
@@ -1510,7 +1510,17 @@ void compound_action_task(void *argument)
         if (osMessageQueueGet(compound_action_queue, &msg, NULL, osWaitForever) == osOK) {
             switch (msg.reg_addr) {
                 case 0x10: cmd_start_workflow();                break;
-                case 0x11: cmd_init_workflow();                 break;
+                case 0x11:
+                    cmd_init_workflow();
+                    /* 老化模式：初始化成功后自动开始首轮流程(0x10)；
+                     * 初始化失败则不启动，等上位机处理(失败即停)。 */
+                    if (g_aging_mode &&
+                        g_system_state == SYS_STATE_INITIALIZED) {
+                        if (action_enqueue(0x10, 0, 0) != WRITE_OK) {
+                            printf("[AGING] First round enqueue FAIL, aging loop ended\r\n");
+                        }
+                    }
+                    break;
                 case 0x30: cmd_fujun_move_to(msg.value32);      break;
                 case 0x40: cmd_suck_cyl_move(msg.value);        break;
                 case 0x41: cmd_seal_cyl_move(msg.value);        break;
@@ -1684,7 +1694,15 @@ int modbus_reg_write_execute(uint16_t addr, uint16_t value)
                     return WRITE_ERR_ILLEGAL;
                 }
                 g_aging_mode = 1;
-                printf("[AGING] Mode ON: init via 0x0011, start first round via 0x0010\r\n");
+                /* 自动链：入队初始化(0x11)，初始化成功后由任务侧
+                 * 自动接首轮流程(0x10)，之后每轮成功自动续轮。 */
+                int ret = action_enqueue(0x11, 0, 0);
+                if (ret != WRITE_OK) {
+                    g_aging_mode = 0;
+                    printf("[REG_0x0014] Queue full\r\n");
+                    return ret;
+                }
+                printf("[AGING] Mode ON: init enqueued, first round auto-starts after init\r\n");
             } else {
                 uint8_t was_aging = g_aging_mode;
                 g_aging_mode = 0;
