@@ -149,6 +149,9 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define SUCTION_CUP_RELEASE_SETTLE_MS    150
 /* 吸住确认后、带膜抬升前的建压等待：让泵把真空锚定在设定区间 */
 #define SUCTION_CUP_HOLD_SETTLE_MS      1000
+/* 吸膜电缸抬升到顶(0)后、电机移动前的沉降等待：
+ * 抬升会带起多张膜，额外膜脱附下落需要时间，等其落稳再运输 */
+#define SUCTION_CYL_POST_LIFT_SETTLE_MS 1000
 #define WORKFLOW_STEP_SETTLE_MS          300
 #define HOLD_VERIFY_DEBOUNCE_MS          250   // 掉落复核去抖等待，防瞬时真空抖动误判
 
@@ -623,6 +626,12 @@ static void cmd_suction_action(uint16_t value)
         goto done;
     }
     g_fault_status &= ~FAULT_BIT_SUCK_CYL;
+
+    /* 抬升到顶后沉降等待：额外带起的多张膜脱附下落需要时间，
+     * 等落稳后再验证吸持并移动电机，避免半空落膜被误判/运输中掉落。 */
+    if (delay_interruptible(SUCTION_CYL_POST_LIFT_SETTLE_MS) != 0) {
+        goto done;
+    }
 
     /* 膜在抬升过程中可能掉落，归零后必须再次确认仍被吸住。 */
     ret = suction_cup_verify_holding("after suck cylinder return");

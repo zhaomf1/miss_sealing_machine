@@ -213,7 +213,7 @@ int fujun_motor_read_position(int32_t *position)
  * =================================================================== */
 
 #define FUJUN_POLL_INTERVAL_MS       100   // 位置轮询间隔
-#define FUJUN_POSITION_TOLERANCE      40   // 到位判定误差 (pulses)
+#define FUJUN_POSITION_TOLERANCE     150   // 到位判定误差 (pulses)，须大于驱动器最小启动/死区脉冲(实测~103)
 #define FUJUN_POSITION_STABLE_COUNT    3   // 连续位置不变次数，确认电机已停止
 #define FUJUN_WAIT_TIMEOUT_MS       10000  // 等待到位最大时间 (ms)
 

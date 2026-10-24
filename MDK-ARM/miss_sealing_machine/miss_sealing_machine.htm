@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\miss_sealing_machine\miss_sealing_machine.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\miss_sealing_machine\miss_sealing_machine.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060061: Last Updated: Wed Oct 21 14:27:51 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060061: Last Updated: Sat Oct 24 09:41:04 2026
 <BR><P>
 <H3>Maximum Stack Usage =        896 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -1548,6 +1548,7 @@ Global Symbols
 <LI><a href="#[16f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;modbus_apply_pending_slave_addr
 <LI><a href="#[16c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;modbus_reg_eeprom_cache_init
 <LI><a href="#[58]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+<LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;compound_action_task
 <LI><a href="#[115]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ads124s08_init
 <LI><a href="#[62]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;temp_ctrl_task
 <LI><a href="#[142]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;temp_ctrl_stop
@@ -1689,7 +1690,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[141]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;eeprom_write_u32
 </UL>
 
-<P><STRONG><a name="[63]"></a>compound_action_task</STRONG> (Thumb, 182 bytes, Stack size 16 bytes, modbus_slave_reg.o(i.compound_action_task))
+<P><STRONG><a name="[63]"></a>compound_action_task</STRONG> (Thumb, 214 bytes, Stack size 16 bytes, modbus_slave_reg.o(i.compound_action_task))
 <BR><BR>[Stack]<UL><LI>Max Depth = 896<LI>Call Chain = compound_action_task &rArr; cmd_start_workflow &rArr; cmd_suction_action &rArr; fujun_motor_wait_position &rArr; fujun_motor_run_pulses &rArr; write_int32 &rArr; modbus_write_multiple_registers &rArr; modbus_transaction &rArr; osMutexAcquire &rArr; xQueueTakeMutexRecursive &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[149]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMessageQueueGet
@@ -1705,6 +1706,8 @@ Global Symbols
 <LI><a href="#[129]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_init_workflow
 <LI><a href="#[128]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_fujun_move_to
 <LI><a href="#[126]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_fujun_home
+<LI><a href="#[112]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;action_enqueue
+<LI><a href="#[118]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__2printf
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(i.MX_FREERTOS_Init)
 </UL>
@@ -1844,7 +1847,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[133]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cylinder_move_to_wait
 </UL>
 
-<P><STRONG><a name="[12d]"></a>dev_cylinder_init</STRONG> (Thumb, 144 bytes, Stack size 16 bytes, dev_cylinder.o(i.dev_cylinder_init))
+<P><STRONG><a name="[12d]"></a>dev_cylinder_init</STRONG> (Thumb, 204 bytes, Stack size 16 bytes, dev_cylinder.o(i.dev_cylinder_init))
 <BR><BR>[Stack]<UL><LI>Max Depth = 560<LI>Call Chain = dev_cylinder_init &rArr; cylinder_wait_home &rArr; cylinder_read_home_state &rArr; modbus_read_holding_registers &rArr; modbus_transaction &rArr; osMutexAcquire &rArr; xQueueTakeMutexRecursive &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[157]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cylinder_wait_home
@@ -2165,7 +2168,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[178]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;modbus_handle_write_multiple
 </UL>
 
-<P><STRONG><a name="[17b]"></a>modbus_reg_write_execute</STRONG> (Thumb, 734 bytes, Stack size 48 bytes, modbus_slave_reg.o(i.modbus_reg_write_execute))
+<P><STRONG><a name="[17b]"></a>modbus_reg_write_execute</STRONG> (Thumb, 760 bytes, Stack size 48 bytes, modbus_slave_reg.o(i.modbus_reg_write_execute))
 <BR><BR>[Stack]<UL><LI>Max Depth = 216<LI>Call Chain = modbus_reg_write_execute &rArr; eeprom_write_u32 &rArr; at24c02_write_page &rArr; HAL_I2C_Mem_Write &rArr; I2C_RequestMemoryWrite &rArr; I2C_WaitOnMasterAddressFlagUntilTimeout
 </UL>
 <BR>[Calls]<UL><LI><a href="#[179]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;modbus_reg_lookup
@@ -3363,6 +3366,7 @@ Local Symbols
 </UL>
 <BR>[Called By]<UL><LI><a href="#[17b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;modbus_reg_write_execute
 <LI><a href="#[17a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;modbus_reg_write32_execute
+<LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;compound_action_task
 <LI><a href="#[13a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_start_workflow
 </UL>
 
@@ -3485,7 +3489,7 @@ Local Symbols
 <BR>[Called By]<UL><LI><a href="#[63]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;compound_action_task
 </UL>
 
-<P><STRONG><a name="[13c]"></a>cmd_suction_action</STRONG> (Thumb, 1516 bytes, Stack size 32 bytes, modbus_slave_reg.o(i.cmd_suction_action))
+<P><STRONG><a name="[13c]"></a>cmd_suction_action</STRONG> (Thumb, 1524 bytes, Stack size 32 bytes, modbus_slave_reg.o(i.cmd_suction_action))
 <BR><BR>[Stack]<UL><LI>Max Depth = 856<LI>Call Chain = cmd_suction_action &rArr; fujun_motor_wait_position &rArr; fujun_motor_run_pulses &rArr; write_int32 &rArr; modbus_write_multiple_registers &rArr; modbus_transaction &rArr; osMutexAcquire &rArr; xQueueTakeMutexRecursive &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[131]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;suction_cup_verify_holding

@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #define SUCTION_CYL_PUSH_FORCE_PERCENT    15U
-#define SUCTION_CYL_PUSH_SPEED_PERCENT    10U
+#define SUCTION_CYL_PUSH_SPEED_PERCENT    50U
 
 /*
  * 封膜电缸推压段：init 一次性显式配置，不再依赖控制器 Flash 历史值
