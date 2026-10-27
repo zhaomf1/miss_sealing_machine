@@ -125,12 +125,12 @@ static const float anti_windup_threshold = 10.0f;
 
 static void heart_on(void)
 {
-    HAL_GPIO_WritePin(HEATER_PORT, HEATER_PIN, GPIO_PIN_SET);  // 低电平有效: 开加热
+    HAL_GPIO_WritePin(HEATER_PORT, HEATER_PIN, GPIO_PIN_SET);  // 高电平有效: 开加热
 }
 
 static void heart_off(void)
 {
-    HAL_GPIO_WritePin(HEATER_PORT, HEATER_PIN, GPIO_PIN_RESET);    // 高电平: 关加热
+    HAL_GPIO_WritePin(HEATER_PORT, HEATER_PIN, GPIO_PIN_RESET);    // 低电平: 关加热
 }
 
 /* ================================================
@@ -217,7 +217,7 @@ void temp_ctrl_task(void *argument)
 
         /* 读取两路传感器 */
         float t1 = ads124s08_read_sensor_temp(&hspi1, 0);  /* 传感器1: AIN0~3 */
-        float t2 = ads124s08_read_sensor_temp(&hspi1, 1);  /* 传感器2: AIN4~7 */
+        // float t2 = ads124s08_read_sensor_temp(&hspi1, 1);  /* 传感器2: AIN4~7 */
         /* T2 is reserved and does not participate in temperature fault reporting. */
         modbus_reg_set_temp_fault(isnan(t1) ? 1 : 0);
 
@@ -232,9 +232,9 @@ void temp_ctrl_task(void *argument)
         /* 无论温控是否开启，都定期输出实时采样值 */
         if (current_time - last_print_tick >= 10000) {
             last_print_tick = current_time;
-            printf("T1=%.1fC  T2=%.1fC  Set=%.0fC  Ctrl=%s\r\n",
+            printf("T1=%.1fC   Set=%.0fC  Ctrl=%s\r\n",
                    isnan(t1) ? -999.0f : t1,
-                   isnan(t2) ? -999.0f : t2,
+                //    isnan(t2) ? -999.0f : t2,
                    g_setpoint,
                    g_temp_ctrl_enabled ? "ON" : "OFF");
         }

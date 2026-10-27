@@ -19,6 +19,38 @@
 #define ADS_LOG(fmt, ...)
 #endif
 
+/* ---------------- 采集有效性判据 ---------------- */
+
+/* 24-bit 正/负满量程码值 */
+#define ADC_CODE_FS_POS      8388607L
+#define ADC_CODE_FS_NEG      (-8388608L)
+/* 距满量程小于该值时判为饱和 (4096 LSB ≈ 0.05% FS) */
+#define ADC_CODE_FS_MARGIN   4096L
+
+/* PT100 合理阻值窗口 (Ω)：80Ω≈-52°C，200Ω≈266°C，ADC 正满量程约在 205Ω。
+ * 低于下限：探头短路/接线异常；高于上限：探头开路/IDAC 引线断开/基准异常。 */
+#define RTD_R_VALID_MIN      80.0f
+#define RTD_R_VALID_MAX      200.0f
+
+/* 两次 IDAC 对调测量允许的最大差值 (°C)。
+ * 正常三线制下两者应基本一致；超限说明某一路激励/基准异常，
+ * 不能取平均，也不能取单值兜底。 */
+#define ADS_IDAC_DIFF_LIMIT  30.0f
+
+/* 故障日志限速：同类故障最多每 5s 输出一次，避免探头断线时刷屏 */
+#define ADS_FAULT_LOG_INTERVAL_MS  5000U
+static uint32_t g_last_fault_log_tick = 0;
+
+static int ads_fault_log_allowed(void)
+{
+    uint32_t now = HAL_GetTick();
+    if ((now - g_last_fault_log_tick) < ADS_FAULT_LOG_INTERVAL_MS) {
+        return 0;
+    }
+    g_last_fault_log_tick = now;
+    return 1;
+}
+
 /* 当前选中的传感器 (0=AIN0~3, 1=AIN4~7) */
 static uint8_t g_sensor = 0;
 
@@ -91,13 +123,14 @@ int ads124s08_init(SPI_HandleTypeDef *hspi)
     uint8_t regs[8] = {
         0x12,   /* INPMUX:   默认传感器1 AIN1/AIN2               */
         0x0B,   /* PGA:      PGA_EN=1, GAIN=8                   */
-        0x14,   /* DATARATE: Duty-Cycle模式(单次转换后待机),
-                   DR=000, MODE=01, Sinc1滤波               */
-        0x12,   /* REF:      外部 REFP0, 内部基准禁用            */
+        0x14,   /* DATARATE: 连续转换, 低延迟滤波, 20SPS (复位值)
+                   (连续模式下 CMD_START 不会重启转换/滤波器)   */
+        0x12,   /* REF:      外部 REFP0/REFN0, REFN 缓冲旁路,
+                   内部基准常开(IDAC 需要)                      */
         0x07,   /* IDACMAG:  1mA IDAC 电流                      */
-        0x30,   /* IDACMUX:  默认 IDAC1→AIN0, IDAC2→AIN3        */
+        0x30,   /* IDACMUX:  IDAC1→AIN3, IDAC2→AIN0             */
         0x00,   /* VBIAS:    无偏置                             */
-        0x10    /* SYS:      Sinc1 滤波                         */
+        0x10    /* SYS:      CAL_SAMP=8 (校准平均次数, 复位值)  */
     };
 
     ads124s08_hard_reset();
@@ -113,7 +146,7 @@ int ads124s08_init(SPI_HandleTypeDef *hspi)
 
     ads124s08_write_reg(hspi, REG_INPMUX, regs, 8);
 
-    /* START 拉高使能转换触发 (duty-cycle模式下 CMD_START 依赖此引脚为高) */
+    /* START 拉高启动连续转换 (20SPS) */
     printf("[ADS] Init: START HIGH, DRDY state=%d\r\n",
            HAL_GPIO_ReadPin(DRDY_PORT, DRDY_PIN));
     START_HIGH();
@@ -198,7 +231,8 @@ static int32_t read_data(SPI_HandleTypeDef *hspi)
 
 static float resistance_to_temperature(float Rt)
 {
-    if (Rt < 10.0f || Rt > 500.0f)
+    /* 阻值超出物理合理窗口 → 探头/接线/基准异常，判为无效 */
+    if (Rt < RTD_R_VALID_MIN || Rt > RTD_R_VALID_MAX)
         return NAN;
 
     const float R0 = RTD_R0;
@@ -206,15 +240,20 @@ static float resistance_to_temperature(float Rt)
 
     if (Rt >= R0) {
         /* T >= 0°C: Rt = R0*(1 + A*t + B*t²)
-           牛顿迭代修正二次项, 否则 ~180°C 时误差 ~5°C */
+           不动点迭代修正二次项, 否则 ~180°C 时误差 ~5°C */
         for (int i = 0; i < 5; i++) {
             t = (Rt / R0 - 1.0f - B * t * t) / A;
         }
     } else {
-        /* T < 0°C: 完整 Callendar-Van Dusen 方程 Rt=R0*(1+A*t+B*t²+C*(t-100)*t³) */
+        /* T < 0°C: 完整 Callendar-Van Dusen 方程
+           Rt = R0*(1 + A*t + B*t² + C*(t-100)*t³)，牛顿迭代 */
         for (int i = 0; i < 5; i++) {
-            t = (Rt / R0 - 1.0f - A * t - B * t * t - C * t * t * (t - 100.0f))
-              / (A + 2.0f * B * t + 3.0f * C * t * t * (t - 100.0f));
+            float f  = 1.0f + A * t + B * t * t
+                     + C * (t - 100.0f) * t * t * t - Rt / R0;
+            float df = A + 2.0f * B * t
+                     + C * (4.0f * t * t * t - 300.0f * t * t);
+            if (fabsf(df) < 1e-9f) break;
+            t -= f / df;
         }
     }
     return t;
@@ -229,11 +268,24 @@ float ads124s08_read_temperature(SPI_HandleTypeDef *hspi)
     write_cmd(hspi, CMD_START);
 
     if (!wait_drdy()) {
-        printf("[ADS] ReadTemp: WaitDRDY FAILED\r\n");
+        if (g_sensor == 0 && ads_fault_log_allowed()) {
+            printf("[ADS] ReadTemp: WaitDRDY FAILED\r\n");
+        }
         return NAN;
     }
 
     int32_t code = read_data(hspi);
+
+    /* 饱和检测：探头开路或基准异常时 PGA 输出会顶到满量程，
+       换算出的电阻仍可能落在"合法"区间（约 205Ω），必须在原始码上判。 */
+    if (code >= (ADC_CODE_FS_POS - ADC_CODE_FS_MARGIN) ||
+        code <= (ADC_CODE_FS_NEG + ADC_CODE_FS_MARGIN)) {
+        /* 只对控制通道(传感器1)报日志；传感器2预留未接，避免刷屏 */
+        if (g_sensor == 0 && ads_fault_log_allowed()) {
+            printf("[ADS] ADC saturated: code=%ld\r\n", (long)code);
+        }
+        return NAN;
+    }
 
     /* R_RTD = code * 2 * R_REF / (PGA * 2^23)
        推导: code = (V_RTD*PGA/V_REF)*2^23, V_REF=2*I*R_REF, V_RTD=I*R_RTD */
@@ -269,9 +321,24 @@ float ads124s08_read_sensor_temp(SPI_HandleTypeDef *hspi, uint8_t sensor)
     /* 恢复默认 IDAC 配置 */
     config_idac(hspi, 0);
 
+    /* 两次测量必须同时有效且互相一致才认为可信：
+     * - 只有一路有效，可能正是某根 IDAC 引线断开、基准电流减半的故障状态，
+     *   不能取单值兜底；
+     * - 两路差值过大，说明激励/基准异常，平均值同样不可信。 */
+    if (isnan(t1) || isnan(t2)) {
+        if (sensor == 0 && ads_fault_log_allowed()) {
+            printf("[ADS] Measurement invalid: t1=%s t2=%s\r\n",
+                   isnan(t1) ? "NaN" : "OK", isnan(t2) ? "NaN" : "OK");
+        }
+        return NAN;
+    }
+    if (fabsf(t1 - t2) > ADS_IDAC_DIFF_LIMIT) {
+        if (sensor == 0 && ads_fault_log_allowed()) {
+            printf("[ADS] IDAC mismatch: t1=%.1f t2=%.1f\r\n", t1, t2);
+        }
+        return NAN;
+    }
+
     /* 取平均消除引线电阻不对称误差 */
-    if (!isnan(t1) && !isnan(t2))
-        return (t1 + t2) / 2.0f;
-    else
-        return isnan(t1) ? t2 : t1;
+    return (t1 + t2) / 2.0f;
 }
