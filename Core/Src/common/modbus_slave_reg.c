@@ -56,6 +56,7 @@ static const ModbusRegDef_t reg_map[] = {
     {0x0080, REG_ACCESS_RO, REG_TYPE_U32},   // 总封膜次数
     {REG_FILM_QUANTITY_UPDATE, REG_ACCESS_WO, REG_TYPE_U32}, // 当前膜数量更新
     {REG_FILM_QUANTITY_QUERY,  REG_ACCESS_RO, REG_TYPE_U32}, // 剩余膜数量查询
+    {0x0086, REG_ACCESS_RW, REG_TYPE_U32},   // 封膜位置
 
     /* 调试动作执行状态 */
     {0x00A0, REG_ACCESS_RO, REG_TYPE_U16},   // 调试动作执行状态
@@ -167,6 +168,7 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 /* ---- EEPROM 参数全局缓存（上电初始化一次，避免频繁操作 EEPROM）---- */
 static uint32_t g_eeprom_zero;       // 零点位置 (0x0070)
 static uint32_t g_eeprom_suck_seal;  // 吸膜/封膜位置 (0x0072)
+static uint32_t g_eeprom_seal_position; // 封膜位置 (0x0086)
 static uint32_t g_eeprom_pave;       // 铺膜点位置 (0x0074)
 static uint32_t g_eeprom_get_place;  // 取放孔板位置 (0x0076)
 static uint16_t g_eeprom_temp_ctrl;  // 温度值 (0x0078)
@@ -184,6 +186,7 @@ static const char *eeprom_param_name(uint16_t reg_addr)
     switch (reg_addr) {
         case 0x0070: return "zero_pos";
         case 0x0072: return "suck_seal_pos";
+        case 0x0086: return "seal_pos";
         case 0x0074: return "pave_pos";
         case 0x0076: return "get_place_pos";
         case 0x0078: return "temperature_setpoint";
@@ -804,12 +807,12 @@ static void cmd_seal_action(uint16_t value)
     int ret;
 
     printf("[CMD_0x0063] Seal action: fujun_target=%lu press_time=%us\r\n",
-           (unsigned long)g_eeprom_suck_seal, g_eeprom_press_time);
+           (unsigned long)g_eeprom_seal_position, g_eeprom_press_time);
 
     /* Step 1: 富俊电机移动到吸膜/封膜位置 */
     ret = -1;
     for (int attempt = 0; attempt < 1; attempt++) {
-        ret = fujun_motor_wait_position((int32_t)g_eeprom_suck_seal);
+        ret = fujun_motor_wait_position((int32_t)g_eeprom_seal_position);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
         printf("[CMD_0x0063] Step1 attempt %d/%d FAIL (ret=%d)\r\n",
@@ -1439,6 +1442,16 @@ void modbus_reg_eeprom_cache_init(void)
         shadow[0x0072] = (uint16_t)((v >> 16) & 0xFFFF);
         shadow[0x0073] = (uint16_t)(v & 0xFFFF);
     }
+    if (eeprom_read_u32(EEPROM_SEAL_POSITION, &v) != HAL_OK || v == 0xFFFFFFFFU) {
+        /* 兼容旧设备：新参数首次使用时沿用原共用点位，并持久化。 */
+        v = g_eeprom_suck_seal;
+        if (eeprom_write_u32(EEPROM_SEAL_POSITION, v) != HAL_OK) {
+            printf("[EEPROM] Seal position migration failed; using suck/seal position in RAM\r\n");
+        }
+    }
+    g_eeprom_seal_position = v;
+    shadow[0x0086] = (uint16_t)((v >> 16) & 0xFFFF);
+    shadow[0x0087] = (uint16_t)(v & 0xFFFF);
     if (eeprom_read_u32(EEPROM_PAVE, &v) == HAL_OK) {
         g_eeprom_pave = v;
         shadow[0x0074] = (uint16_t)((v >> 16) & 0xFFFF);
@@ -1622,6 +1635,8 @@ int modbus_reg_read_value(uint16_t addr, uint16_t *out_value)
         case 0x0078:
         case 0x0079:
         case 0x0080:   // 总封膜次数 (uint32, 低16位)
+        case 0x0086:
+        case 0x0087:
         case REG_FILM_QUANTITY_QUERY: // 剩余膜数量 (uint32, 低16位)
             *out_value = shadow[addr];
             break;
@@ -1874,6 +1889,20 @@ int modbus_reg_write32_execute(uint16_t start_addr, uint32_t value)
             g_eeprom_suck_seal = value;
             shadow[0x0072] = (uint16_t)((value >> 16) & 0xFFFF);
             shadow[0x0073] = (uint16_t)(value & 0xFFFF);
+            printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
+            break;
+        case 0x0086:
+            printf("[PARAM_SAVE] begin reg=0x%04X name=%s value=%lu\r\n",
+                   start_addr, eeprom_param_name(start_addr), (unsigned long)value);
+            if (eeprom_write_u32(EEPROM_SEAL_POSITION, value) != HAL_OK) {
+                printf("[PARAM_SAVE] FAIL reg=0x%04X name=%s value=%lu\r\n",
+                       start_addr, eeprom_param_name(start_addr), (unsigned long)value);
+                return WRITE_ERR_DEVICE;
+            }
+            g_eeprom_seal_position = value;
+            shadow[0x0086] = (uint16_t)((value >> 16) & 0xFFFF);
+            shadow[0x0087] = (uint16_t)(value & 0xFFFF);
             printf("[PARAM_SAVE] OK reg=0x%04X name=%s value=%lu\r\n",
                    start_addr, eeprom_param_name(start_addr), (unsigned long)value);
             break;
