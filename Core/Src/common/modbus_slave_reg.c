@@ -156,7 +156,8 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define HOLD_VERIFY_DEBOUNCE_MS          250   // 掉落复核去抖等待，防瞬时真空抖动误判
 
 /* ---- 复合动作重试次数 ---- */
-#define COMPOUND_ACTION_MAX_RETRIES  3
+#define COMPOUND_ACTION_MAX_RETRIES  2
+#define SUCTION_STATE_MAX_ATTEMPTS   2
 
 /* ---- 复合动作电缸下落距离 (0.01mm) ---- */
 #define SUCTION_CYL_SUCK_POS   5000  // 吸膜点：吸膜操作时电缸下落距离
@@ -477,7 +478,7 @@ static void cmd_fujun_home(uint16_t value)
     printf("[CMD_0x0060] Fujun motor home: zero_pos=%lu\r\n",
            (unsigned long)g_eeprom_zero);
 
-    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+    for (int attempt = 0; attempt < 1; attempt++) {
         ret = fujun_motor_wait_position((int32_t)g_eeprom_zero);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
@@ -514,7 +515,7 @@ static void cmd_suction_action(uint16_t value)
 
     /* Step 1: 富俊电机移动到吸膜/封膜位置 */
     ret = -1;
-    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+    for (int attempt = 0; attempt < 1; attempt++) {
         ret = fujun_motor_wait_position((int32_t)g_eeprom_suck_seal);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
@@ -571,7 +572,7 @@ static void cmd_suction_action(uint16_t value)
         printf("[CMD_0x0061] Step3 hold check SKIPPED (aging)\r\n");
     } else {
         ret = -1;
-        for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+        for (int attempt = 0; attempt < SUCTION_STATE_MAX_ATTEMPTS; attempt++) {
             /* 重试前先释放吸盘，确保硬件状态机从上次失败中复位 */
             if (attempt > 0) {
                 ret = suction_cup_release();
@@ -679,7 +680,7 @@ static void cmd_lay_film_action(uint16_t value)
 
     /* Step 1: 富俊电机移动到铺膜位置 */
     ret = -1;
-    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+    for (int attempt = 0; attempt < 1; attempt++) {
         ret = fujun_motor_wait_position((int32_t)g_eeprom_pave);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
@@ -807,7 +808,7 @@ static void cmd_seal_action(uint16_t value)
 
     /* Step 1: 富俊电机移动到吸膜/封膜位置 */
     ret = -1;
-    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+    for (int attempt = 0; attempt < 1; attempt++) {
         ret = fujun_motor_wait_position((int32_t)g_eeprom_suck_seal);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
@@ -893,7 +894,7 @@ static void cmd_well_plate_action(uint16_t value)
     printf("[CMD_0x0064] Well plate: fujun_target=%lu\r\n",
            (unsigned long)g_eeprom_get_place);
 
-    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+    for (int attempt = 0; attempt < 1; attempt++) {
         ret = fujun_motor_wait_position((int32_t)g_eeprom_get_place);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
@@ -1116,7 +1117,7 @@ static void cmd_fujun_move_to(int32_t target)
 {
     uint8_t r = ACT_RESULT_FAILURE;
     int ret = -1;
-    for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+    for (int attempt = 0; attempt < 1; attempt++) {
         ret = fujun_motor_wait_position(target);
         if (ret == 0) break;
         if (ret == ACTION_WAIT_CANCELLED) break;
@@ -1193,7 +1194,7 @@ static void cmd_suction_cup_ctrl(uint16_t op)
     uint8_t r = ACT_RESULT_FAILURE;
     int ret = -1;
     if (op == 1) {
-        for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+        for (int attempt = 0; attempt < SUCTION_STATE_MAX_ATTEMPTS; attempt++) {
             if (attempt > 0) {
                 ret = suction_cup_release();
                 if (ret != 0) continue;
@@ -1212,7 +1213,7 @@ static void cmd_suction_cup_ctrl(uint16_t op)
                    attempt + 1, COMPOUND_ACTION_MAX_RETRIES, ret);
         }
     } else {
-        for (int attempt = 0; attempt < COMPOUND_ACTION_MAX_RETRIES; attempt++) {
+        for (int attempt = 0; attempt < SUCTION_STATE_MAX_ATTEMPTS; attempt++) {
             if (attempt > 0) { suction_cup_suck(); osDelay(500); }
             suction_cup_release();
             ret = suction_cup_wait_release(TIMEOUT_SUCTION_CUP);

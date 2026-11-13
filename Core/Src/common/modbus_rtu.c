@@ -7,7 +7,7 @@
 /* 默认配置 */
 static ModbusConfig_t modbus_config = {
     .timeout_ms = 200,      //修改等待时间
-    .retry_count = 5,       //重传次数
+    .retry_count = 2,       //最多重试2次（总计3次尝试）
 };
 
 /* 状态统计 */

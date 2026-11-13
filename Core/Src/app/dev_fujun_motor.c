@@ -320,7 +320,7 @@ int fujun_motor_wait_stop(uint32_t timeout_ms)
 int fujun_motor_wait_position(int32_t target)
 {
     int32_t cur_pos;
-    const int MAX_ATTEMPTS = 4;  // 1 initial + 3 retries
+    const int MAX_ATTEMPTS = 2;  // 首次运动 + 最多一次位置补偿
 
     /*
      * 到位判断策略：
@@ -336,8 +336,11 @@ int fujun_motor_wait_position(int32_t target)
 
         /* 读取当前位置，并按剩余误差决定相对补偿量 */
         if (fujun_motor_read_position(&cur_pos) != MODBUS_OK) {
-            osDelay(200);
-            continue;
+            /* 位置不可读时不发运动命令；只短暂重读一次，避免失联时循环等待 */
+            osDelay(50);
+            if (fujun_motor_read_position(&cur_pos) != MODBUS_OK) {
+                return -3;
+            }
         }
 
         int32_t delta = target - cur_pos;
@@ -348,8 +351,7 @@ int fujun_motor_wait_position(int32_t target)
 
         /* 使用相对运行补偿剩余误差，避免绝对位置小偏差时驱动器不动作 */
         if (fujun_motor_run_pulses(delta) != MODBUS_OK) {
-            osDelay(200);
-            continue;
+            return -3;
         }
 
         printf("[FUJUN] Correction move: target=%ld current=%ld delta=%ld (attempt %d/%d)\r\n",
@@ -413,6 +415,7 @@ int fujun_motor_wait_position(int32_t target)
             if (final_diff <= FUJUN_POSITION_TOLERANCE) {
                 return 0;
             }
+            /* 报警/通信故障之外，且已确认停止后，仅允许一次剩余误差补偿。 */
             printf("[FUJUN] Position mismatch: target=%ld actual=%ld diff=%ld (attempt %d/%d)\r\n",
                    (long)target, (long)cur_pos, (long)final_diff, attempt + 1, MAX_ATTEMPTS);
         }
