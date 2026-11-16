@@ -162,7 +162,7 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 
 /* ---- 复合动作电缸下落距离 (0.01mm) ---- */
 #define SUCTION_CYL_SUCK_POS   5000  // 吸膜点：吸膜操作时电缸下落距离
-#define SUCTION_CYL_PAVE_POS   2500  // 铺膜点：铺膜操作时电缸下落距离 
+#define SUCTION_CYL_PAVE_POS   3500  // 铺膜点：铺膜操作时电缸下落距离 
 #define SEAL_CYL_DROP_DISTANCE  5000  // 封膜电缸下落距离 
 
 /* ---- EEPROM 参数全局缓存（上电初始化一次，避免频繁操作 EEPROM）---- */
