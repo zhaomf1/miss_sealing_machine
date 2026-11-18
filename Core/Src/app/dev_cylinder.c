@@ -14,7 +14,7 @@
  * (此前从未写入，中段限力段残留值疑似导致抬升停在2750族位置)。
  */
 #define SEAL_CYL_PUSH_FORCE_PERCENT      100U
-#define SEAL_CYL_PUSH_LENGTH_001MM       2000U
+#define SEAL_CYL_PUSH_LENGTH_001MM       4000U
 #define SEAL_CYL_PUSH_SPEED_PERCENT       50U
 
 /* ------------------------------------------------------------------ *
