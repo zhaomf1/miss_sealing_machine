@@ -5,12 +5,20 @@
 #include <stdbool.h>
 
 /*
- * 吸膜下压用推压段长度(行程末端限力段，单位0.01mm)：
- * 目标5000前最后25mm以15%力/10%速接触膜面，压深由力决定、
- * 不随膜堆高度漂移。上电init与0x61吸膜下压前均写入此值；
- * 铺膜(0x62)下落前显式写0禁用，回零不禁用。
+ * 吸膜电缸配置
  */
-#define SUCTION_CYL_PUSH_LENGTH_001MM   2500U
+#define SUCTION_CYL_PUSH_FORCE_PERCENT    15U
+#define SUCTION_CYL_PUSH_LENGTH_001MM   5000U
+#define SUCTION_CYL_PUSH_SPEED_PERCENT    50U
+#define SUCTION_CYL_MAX_SPEED_PERCENT     50U
+
+/*
+ * 封膜电缸配置
+ */
+#define SEAL_CYL_PUSH_FORCE_PERCENT      100U
+#define SEAL_CYL_PUSH_LENGTH_001MM       2000U
+#define SEAL_CYL_PUSH_SPEED_PERCENT       50U
+
 
 /* 错误复位(0x0503=1)后等待控制器恢复接受控制的延时 */
 #define CYL_ERR_RESET_SETTLE_MS         500U

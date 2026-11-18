@@ -152,7 +152,7 @@ void modbus_reg_set_temp_fault(uint8_t fault)
 #define SUCTION_CUP_HOLD_SETTLE_MS      1000
 /* 吸膜电缸抬升到顶(0)后、电机移动前的沉降等待：
  * 抬升会带起多张膜，额外膜脱附下落需要时间，等其落稳再运输 */
-#define SUCTION_CYL_POST_LIFT_SETTLE_MS 1000
+#define SUCTION_CYL_POST_LIFT_SETTLE_MS 1500
 #define WORKFLOW_STEP_SETTLE_MS          300
 #define HOLD_VERIFY_DEBOUNCE_MS          250   // 掉落复核去抖等待，防瞬时真空抖动误判
 

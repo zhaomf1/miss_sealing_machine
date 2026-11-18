@@ -6,16 +6,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define SUCTION_CYL_PUSH_FORCE_PERCENT    15U
-#define SUCTION_CYL_PUSH_SPEED_PERCENT    50U
-
-/*
- * 封膜电缸推压段：init 一次性显式配置，不再依赖控制器 Flash 历史值
- * (此前从未写入，中段限力段残留值疑似导致抬升停在2750族位置)。
- */
-#define SEAL_CYL_PUSH_FORCE_PERCENT      100U
-#define SEAL_CYL_PUSH_LENGTH_001MM       4000U
-#define SEAL_CYL_PUSH_SPEED_PERCENT       50U
 
 /* ------------------------------------------------------------------ *
  *  内部工具：电缸ID → Modbus 从机地址
@@ -58,7 +48,8 @@ int dev_cylinder_init(void)
     if (cylinder_set_push_dir(CYLINDER_ID_SUCK, CYLINDER_PUSH_DIR_FORWARD) != MODBUS_OK ||
         cylinder_set_force(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_FORCE_PERCENT) != MODBUS_OK ||
         cylinder_set_push_length(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_LENGTH_001MM) != MODBUS_OK ||
-        cylinder_set_push_speed(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_SPEED_PERCENT) != MODBUS_OK) {
+        cylinder_set_push_speed(CYLINDER_ID_SUCK, SUCTION_CYL_PUSH_SPEED_PERCENT) != MODBUS_OK ||
+        cylinder_set_max_speed(CYLINDER_ID_SUCK, SUCTION_CYL_MAX_SPEED_PERCENT) != MODBUS_OK) {
         printf("[CYL] Suction cylinder push config FAIL\r\n");
         return -1;
     }
