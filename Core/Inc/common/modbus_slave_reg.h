@@ -21,6 +21,10 @@
 #define REG_TYPE_U16   0   // 16 位寄存器
 #define REG_TYPE_U32   1   // 32 位寄存器（占用连续 2 个地址）
 
+/* 0x0020 实时温度无效哨兵：16 位寄存器全 1。
+ * 注意不能写成 0x00FF，否则按 0.1°C 单位会被上位机显示为 25.5°C。 */
+#define TEMP_VALUE_INVALID   0xFFFFU
+
 /* 系统工作状态 (寄存器 0x0013) */
 #define SYS_STATE_UNINITIALIZED   0x0000   // 未初始化
 #define SYS_STATE_INITIALIZING    0x0001   // 初始化中

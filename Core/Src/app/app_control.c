@@ -96,6 +96,7 @@ HAL_StatusTypeDef eeprom_write_u32(uint16_t addr, uint32_t data)
 static volatile uint8_t g_temp_ctrl_enabled = 0; // 温控使能标志，默认关闭
 static float g_setpoint = 180.0f;           // 设定温度
 static volatile float g_current_temp = 0.0f; // 最近一次有效实时温度
+static volatile uint8_t g_temp_valid = 0;    // 0=当前温度无效/尚未采样, 1=当前有效
 
 /* PID 参数 */
 static float Kp = 4.0f;
@@ -152,6 +153,19 @@ float PID_GetCurrentTemperature(void)
     return g_current_temp;
 }
 
+/**
+ * @brief 当前温度采样是否有效
+ * @return 1=有效, 0=无效/尚未采到有效值
+ *
+ * 传感器断线、短路、ADC 饱和、IDAC 两路不一致、DRDY 超时等都会由
+ * ads124s08_read_sensor_temp() 返回 NAN，此时本标志为 0；
+ * Modbus 0x0020 据此上报 0xFFFF，而不是继续回显上一次有效温度。
+ */
+uint8_t PID_IsCurrentTemperatureValid(void)
+{
+    return g_temp_valid;
+}
+
 /* ================================================
    温控开关接口
    ================================================ */
@@ -205,6 +219,7 @@ void temp_ctrl_task(void *argument)
     }
     if (ads_init_ret != 0) {
         printf("[TEMP] FATAL: ADS124S08 init failed\r\n");
+        g_temp_valid = 0;
         modbus_reg_set_temp_fault(1);
         osThreadSuspend(NULL);
     }
@@ -219,14 +234,22 @@ void temp_ctrl_task(void *argument)
         float t1 = ads124s08_read_sensor_temp(&hspi1, 0);  /* 传感器1: AIN0~3 */
         // float t2 = ads124s08_read_sensor_temp(&hspi1, 1);  /* 传感器2: AIN4~7 */
         /* T2 is reserved and does not participate in temperature fault reporting. */
-        modbus_reg_set_temp_fault(isnan(t1) ? 1 : 0);
+        uint8_t temp_valid = (isnan(t1) == 0);
 
         /*
          * 温度采集与加热控制相互独立：
          * 无论温控开关是否开启，只要传感器1数据有效，就持续刷新0x0020实时温度。
+         * 无效时保留 g_current_temp 的旧值供内部使用，但 g_temp_valid=0，
+         * Modbus 0x0020 会改为上报 0xFFFF（见 modbus_slave_reg.c）。
          */
-        if (!isnan(t1)) {
+        if (temp_valid) {
+            /* 先更新温度，再置有效标志，避免上位机读到“有效但尚未刷新”的旧值 */
             g_current_temp = t1;
+            g_temp_valid = 1;
+            modbus_reg_set_temp_fault(0);
+        } else {
+            g_temp_valid = 0;
+            modbus_reg_set_temp_fault(1);
         }
 
         /* 无论温控是否开启，都定期输出实时采样值 */

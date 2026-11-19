@@ -277,10 +277,18 @@ static void fault_update(uint8_t reg_addr, uint8_t result)
  *              温度控制预留桩
  * =================================================================== */
 
-/** @brief  读取当前温度，单位 0.1°C */
+/** @brief  读取当前温度，单位 0.1°C；采样无效时返回 0xFFFF */
 static int temp_ctrl_get(uint16_t *temperature)
 {
     if (temperature == NULL) return -1;
+
+    /* 断线/短路/ADC 饱和/IDAC 不一致/DRDY 超时等统一由驱动返回 NAN，
+     * 此时 g_temp_valid=0，不再回显上一次有效温度，直接上报无效哨兵。 */
+    if (!PID_IsCurrentTemperatureValid()) {
+        *temperature = TEMP_VALUE_INVALID;
+        return 0;
+    }
+
     float temp = PID_GetCurrentTemperature();
     if (temp < 0.0f) temp = 0.0f;
     if (temp > 250.0f) temp = 250.0f;

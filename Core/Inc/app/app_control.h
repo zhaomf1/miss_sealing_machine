@@ -36,9 +36,10 @@ void    temp_ctrl_stop(void);           // 关闭温度控制
 uint8_t temp_ctrl_is_running(void);     // 查询温控运行状态 (1=运行, 0=停止)
 
 /* 温度读取接口（供 modbus_slave_reg 调用） */
-float PID_GetCurrentTemperature(void);
-void  PID_SetTemperature(float setpoint);
-float PID_GetSetpoint(void);
+float   PID_GetCurrentTemperature(void);
+uint8_t PID_IsCurrentTemperatureValid(void);   // 1=当前温度有效, 0=无效/尚未采样
+void    PID_SetTemperature(float setpoint);
+float   PID_GetSetpoint(void);
 void led_blink(void);
 
 #endif
