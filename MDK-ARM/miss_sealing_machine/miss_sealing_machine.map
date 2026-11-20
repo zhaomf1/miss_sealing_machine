@@ -3794,7 +3794,7 @@ Image Symbol Table
     i.cmd_lay_film_action                    0x080063f4   Section        0  modbus_slave_reg.o(i.cmd_lay_film_action)
     cmd_lay_film_action                      0x080063f5   Thumb Code  1432  modbus_slave_reg.o(i.cmd_lay_film_action)
     i.cmd_seal_action                        0x0800698c   Section        0  modbus_slave_reg.o(i.cmd_seal_action)
-    cmd_seal_action                          0x0800698d   Thumb Code   310  modbus_slave_reg.o(i.cmd_seal_action)
+    cmd_seal_action                          0x0800698d   Thumb Code   312  modbus_slave_reg.o(i.cmd_seal_action)
     i.cmd_seal_cyl_move                      0x08006d08   Section        0  modbus_slave_reg.o(i.cmd_seal_cyl_move)
     cmd_seal_cyl_move                        0x08006d09   Thumb Code    96  modbus_slave_reg.o(i.cmd_seal_cyl_move)
     i.cmd_start_workflow                     0x08006dc4   Section        0  modbus_slave_reg.o(i.cmd_start_workflow)
@@ -5281,7 +5281,7 @@ Image component sizes
        138          0          0          0          0       3750   list.o
        312         62          0          0          0       3056   main.o
       2412        750        768         24       1400      11979   modbus_rtu.o
-     15146       8794        909         48        322      34935   modbus_slave_reg.o
+     15146       8792        909         48        322      34935   modbus_slave_reg.o
        786         82          0         12          0      11909   port.o
       2670         28          0          0         64      31200   queue.o
          0          0          0          0        132        242   sdio.o
@@ -5311,7 +5311,7 @@ Image component sizes
        744         12          0          0        256       9925   usart_comm.o
 
     ----------------------------------------------------------------------
-     52700      13410       2740        300      24976    1221411   Object Totals
+     52700      13408       2740        300      24976    1221411   Object Totals
          0          0         32          0          0          0   (incl. Generated)
         72          0          6          0          6          0   (incl. Padding)
 
@@ -5371,9 +5371,9 @@ Image component sizes
 
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   
 
-     56680      13536       2740        312      24976    1184155   Grand Totals
-     56680      13536       2740         44      24976    1184155   ELF Image Totals (compressed)
-     56680      13536       2740         44          0          0   ROM Totals
+     56680      13534       2740        312      24976    1184155   Grand Totals
+     56680      13534       2740         44      24976    1184155   ELF Image Totals (compressed)
+     56680      13534       2740         44          0          0   ROM Totals
 
 ==============================================================================
 

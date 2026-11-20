@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\miss_sealing_machine\miss_sealing_machine.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\miss_sealing_machine\miss_sealing_machine.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060061: Last Updated: Thu Nov 19 10:52:11 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060061: Last Updated: Fri Nov 20 08:37:52 2026
 <BR><P>
 <H3>Maximum Stack Usage =        896 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -3441,7 +3441,7 @@ Local Symbols
 <LI><a href="#[13c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;cmd_start_workflow
 </UL>
 
-<P><STRONG><a name="[13a]"></a>cmd_seal_action</STRONG> (Thumb, 310 bytes, Stack size 24 bytes, modbus_slave_reg.o(i.cmd_seal_action))
+<P><STRONG><a name="[13a]"></a>cmd_seal_action</STRONG> (Thumb, 312 bytes, Stack size 24 bytes, modbus_slave_reg.o(i.cmd_seal_action))
 <BR><BR>[Stack]<UL><LI>Max Depth = 848<LI>Call Chain = cmd_seal_action &rArr; fujun_motor_wait_position &rArr; fujun_motor_run_pulses &rArr; write_int32 &rArr; modbus_write_multiple_registers &rArr; modbus_transaction &rArr; osMutexAcquire &rArr; xQueueTakeMutexRecursive &rArr; xQueueSemaphoreTake &rArr; xTaskResumeAll &rArr; xTaskIncrementTick
 </UL>
 <BR>[Calls]<UL><LI><a href="#[137]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;delay_interruptible

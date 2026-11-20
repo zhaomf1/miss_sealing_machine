@@ -16,7 +16,7 @@
  * 封膜电缸配置
  */
 #define SEAL_CYL_PUSH_FORCE_PERCENT      100U
-#define SEAL_CYL_PUSH_LENGTH_001MM       2000U
+#define SEAL_CYL_PUSH_LENGTH_001MM       3000U
 #define SEAL_CYL_PUSH_SPEED_PERCENT       50U
 
 
